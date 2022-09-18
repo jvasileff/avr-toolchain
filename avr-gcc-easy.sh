@@ -2,17 +2,20 @@
 
 GCC_VERSION=7.3.0
 
-UPSTREAM_ARCHIVE=avr8-gnu-toolchain-osx-3.7.0.518-darwin.any.x86_64.tar.gz
-UPSTREAM_DIR=avr8-gnu-toolchain-darwin_x86_64
-TARGET_NAME=avr-toolchain-macOS-x86_64-v1
+# Uncomment one of the following three groups of settings to build for macOS,
+# Linux, or Windows
+
+#UPSTREAM_ARCHIVE=avr8-gnu-toolchain-osx-3.7.0.518-darwin.any.x86_64.tar.gz
+#UPSTREAM_DIR=avr8-gnu-toolchain-darwin_x86_64
+#TARGET_NAME=avr-toolchain-macOS-x86_64
+
+UPSTREAM_ARCHIVE=avr8-gnu-toolchain-3.7.0.1796-linux.any.x86_64.tar.gz
+UPSTREAM_DIR=avr8-gnu-toolchain-linux_x86_64
+TARGET_NAME=avr-toolchain-linux-x86_64
 
 #UPSTREAM_ARCHIVE=avr8-gnu-toolchain-3.7.0.1796-win32.any.x86_64.zip
 #UPSTREAM_DIR=avr8-gnu-toolchain-win32_x86_64
-#TARGET_NAME=avr-toolchain-win32-x86_64-v1
-
-#UPSTREAM_ARCHIVE=avr8-gnu-toolchain-3.7.0.1796-linux.any.x86_64.tar.gz
-#UPSTREAM_DIR=avr8-gnu-toolchain-linux_x86_64
-#TARGET_NAME=avr-toolchain-linux-x86_64-v1
+#TARGET_NAME=avr-toolchain-win32-x86_64
 
 PACKS=(
     Atmel.ATtiny_DFP.2.0.368.atpack
