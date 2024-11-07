@@ -11,10 +11,12 @@
 set -eu
 shopt -s expand_aliases
 
-BUILD_DIR="$(pwd)"
+BUILD_DIR="$(pwd)/build"
 INSTALL_DIR="${BUILD_DIR}"/avr-toolchain
-GCC_VERSION=11.5.0
+GCC_VERSION=14.2.0
 BINTOOLS_VERSION=2.43
+LIBC_DIR=2_2_1-release
+LIBC_VERSION=2.2.1
 MAKE_JOBS=10
 
 PACKS=(
@@ -31,7 +33,8 @@ PACKS=(
 #    Atmel.AVR-Dx_DFP.1.10.114.atpack
 #)
 
-mkdir $INSTALL_DIR
+mkdir -p $BUILD_DIR
+mkdir -p $INSTALL_DIR
 export PATH="${INSTALL_DIR}"/bin:$PATH
 
 if [ -z "$MAKE_JOBS" ]; then
@@ -53,20 +56,17 @@ set -x
 ############################################################
 heading "Download Sources"
 ############################################################
-if [[ ! -e "avr-libc-2.2.1.tar.bz2" ]]; then
-    wget 'https://github.com/avrdudes/avr-libc/releases/download/avr-libc-2_2_1-release/avr-libc-2.2.1.tar.bz2'
+mkdir -p "${BUILD_DIR}/download"
+pushd "${BUILD_DIR}/download"
+
+if [[ ! -e "avr-libc-${LIBC_VERSION}.tar.bz2" ]]; then
+    wget "https://github.com/avrdudes/avr-libc/releases/download/avr-libc-${LIBC_DIR}/avr-libc-${LIBC_VERSION}.tar.bz2"
 fi
 if [[ ! -e "binutils-${BINTOOLS_VERSION}.tar.gz" ]]; then
     wget "https://ftp.gnu.org/gnu/binutils/binutils-${BINTOOLS_VERSION}.tar.gz"
 fi
 if [[ ! -e "gcc-${GCC_VERSION}.tar.xz" ]]; then
     wget "https://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz"
-fi
-if [[ ! -e "00-binutils-data_region_length.patch" ]]; then
-    wget 'https://raw.githubusercontent.com/arduino/toolchain-avr/master/binutils-patches/00-binutils-data_region_length.patch'
-fi
-if [[ ! -e "gcc-11-arm-darwin.patch" ]]; then
-    wget 'https://gist.githubusercontent.com/DavidEGrayson/88bceb3f4e62f45725ecbb9248366300/raw/c1f515475aff1e1e3985569d9b715edb0f317648/gcc-11-arm-darwin.patch'
 fi
 if [[ ! -e "config.guess" ]]; then
     wget "http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD" -O "./config.guess"
@@ -82,68 +82,84 @@ for pack in ${PACKS[@]}; do
     fi
 done
 
+popd
+
 ############################################################
 heading "Build and install binutils"
 ############################################################
-tar xf binutils-${BINTOOLS_VERSION}.tar.gz
+pushd "$BUILD_DIR"
+
+tar xf download/binutils-${BINTOOLS_VERSION}.tar.gz
 cd binutils-${BINTOOLS_VERSION}
-#patch -p1 < ../00-binutils-data_region_length.patch
-./configure --prefix="${INSTALL_DIR}" --program-prefix=avr- --target=avr --disable-nls
+./configure --prefix="${INSTALL_DIR}" --program-prefix=avr- --target=avr --disable-nls --disable-werror
 make -j ${MAKE_JOBS}
 make install
-cd ..
+
+popd
 
 ############################################################
 heading "Build and install gcc"
 ############################################################
-tar xf gcc-${GCC_VERSION}.tar.xz
+pushd "$BUILD_DIR"
+
+tar xf download/gcc-${GCC_VERSION}.tar.xz
 cd gcc-${GCC_VERSION}
-if [ $(uname) = "Darwin" -a $(arch) = "arm64" ] ; then
-    patch -p1 < ../gcc-11-arm-darwin.patch
-fi
 ./contrib/download_prerequisites
 cd ..
-mkdir gcc-build
+mkdir -p gcc-build
 cd gcc-build
+#    --enable-fixed-point \
+#    --with-avrlibc=yes \
+#    --disable-doc
 ../gcc-${GCC_VERSION}/configure --prefix="${INSTALL_DIR}" --program-prefix=avr- --target=avr \
-    --enable-languages=c,c++ --with-gnu-as --with-gnu-ld --disable-nls \
-    --with-zstd=no \
-    --enable-fixed-point \
+    --enable-languages=c,c++ \
+    --disable-nls \
     --disable-libssp \
     --disable-libada \
-    --disable-shared \
-    --with-avrlibc=yes \
     --with-dwarf2 \
-    --disable-doc
+    --disable-shared \
+    --enable-static \
+    --enable-mingw-wildcard \
+    --enable-plugin \
+    --with-gnu-as \
+    --with-gnu-ld \
+    --without-zstd
 make -j ${MAKE_JOBS}
-make install
-cd ..
+make install-strip
+
+popd
 
 ############################################################
 heading "Build and install avr-libc"
 ############################################################
+pushd "$BUILD_DIR"
+
 if [ $(uname) = "Darwin" -a $(arch) = "arm64" ] ; then
     # workaround for arm mac
     export ac_cv_build=aarch64-apple-darwin
 fi
-tar xf avr-libc-2.2.1.tar.bz2
-cd avr-libc-2.2.1
+tar xf download/avr-libc-${LIBC_VERSION}.tar.bz2
+cd avr-libc-${LIBC_VERSION}
 rm -f config.guess && cp -a ../config.guess .
 rm -f config.sub && cp -a ../config.sub .
 ./bootstrap
 ./configure --prefix="${INSTALL_DIR}" --host=avr
 make -j ${MAKE_JOBS}
 make install
-cd ..
+
+popd
 
 ############################################################
 heading "Install atpacks"
 ############################################################
+
+pushd "$BUILD_DIR"
+
 for packFile in ${PACKS[@]}; do
     echo "Installing ${packFile}"
     mkdir pack
     cd pack
-    unzip -q ../${packFile}
+    unzip -q ../download/${packFile}
     mv gcc/dev/*/device-specs/* "${INSTALL_DIR}"/lib/gcc/avr/${GCC_VERSION}/device-specs
     rmdir gcc/dev/*/device-specs
     cp -a gcc/dev/*/* "${INSTALL_DIR}"/avr/lib
@@ -151,6 +167,8 @@ for packFile in ${PACKS[@]}; do
     cd ..
     rm -rf pack
 done
+
+popd
 
 ############################################################
 heading "Done."
