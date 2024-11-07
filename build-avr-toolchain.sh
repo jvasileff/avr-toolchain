@@ -6,21 +6,22 @@
 #
 # For macOS:
 #   install xcode & xcode commandline tools
+#   brew install autoconf automake
 
 set -eu
 shopt -s expand_aliases
 
 BUILD_DIR="$(pwd)"
 INSTALL_DIR="${BUILD_DIR}"/avr-toolchain
-GCC_VERSION=11.3.0
-BINTOOLS_VERSION=2.39
+GCC_VERSION=11.5.0
+BINTOOLS_VERSION=2.43
 MAKE_JOBS=10
 
 PACKS=(
     Atmel.ATtiny_DFP.2.0.368.atpack
-    Atmel.AVR-Ex_DFP.2.2.56.atpack
-    Atmel.ATmega_DFP.2.0.401.atpack
-    Atmel.AVR-Dx_DFP.2.1.146.atpack
+    Atmel.AVR-Ex_DFP.2.10.205.atpack
+    Atmel.ATmega_DFP.2.2.509.atpack
+    Atmel.AVR-Dx_DFP.2.6.303.atpack
 )
 
 #PACKS=(
@@ -52,14 +53,14 @@ set -x
 ############################################################
 heading "Download Sources"
 ############################################################
-if [[ ! -e "avr-libc-2.1.0.tar.bz2" ]]; then
-    wget 'https://mirrors.sarata.com/non-gnu/avr-libc/avr-libc-2.1.0.tar.bz2'
+if [[ ! -e "avr-libc-2.2.1.tar.bz2" ]]; then
+    wget 'https://github.com/avrdudes/avr-libc/releases/download/avr-libc-2_2_1-release/avr-libc-2.2.1.tar.bz2'
 fi
 if [[ ! -e "binutils-${BINTOOLS_VERSION}.tar.gz" ]]; then
     wget "https://ftp.gnu.org/gnu/binutils/binutils-${BINTOOLS_VERSION}.tar.gz"
 fi
 if [[ ! -e "gcc-${GCC_VERSION}.tar.xz" ]]; then
-    wget "http://mirrors.concertpass.com/gcc/releases/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz"
+    wget "https://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz"
 fi
 if [[ ! -e "00-binutils-data_region_length.patch" ]]; then
     wget 'https://raw.githubusercontent.com/arduino/toolchain-avr/master/binutils-patches/00-binutils-data_region_length.patch'
@@ -86,7 +87,7 @@ heading "Build and install binutils"
 ############################################################
 tar xf binutils-${BINTOOLS_VERSION}.tar.gz
 cd binutils-${BINTOOLS_VERSION}
-patch -p1 < ../00-binutils-data_region_length.patch
+#patch -p1 < ../00-binutils-data_region_length.patch
 ./configure --prefix="${INSTALL_DIR}" --program-prefix=avr- --target=avr --disable-nls
 make -j ${MAKE_JOBS}
 make install
@@ -125,8 +126,8 @@ if [ $(uname) = "Darwin" -a $(arch) = "arm64" ] ; then
     # workaround for arm mac
     export ac_cv_build=aarch64-apple-darwin
 fi
-tar xf avr-libc-2.1.0.tar.bz2
-cd avr-libc-2.1.0
+tar xf avr-libc-2.2.1.tar.bz2
+cd avr-libc-2.2.1
 rm -f config.guess && cp -a ../config.guess .
 rm -f config.sub && cp -a ../config.sub .
 ./bootstrap

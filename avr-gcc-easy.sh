@@ -5,13 +5,13 @@ GCC_VERSION=7.3.0
 # Uncomment one of the following three groups of settings to build for macOS,
 # Linux, or Windows
 
-#UPSTREAM_ARCHIVE=avr8-gnu-toolchain-osx-3.7.0.518-darwin.any.x86_64.tar.gz
-#UPSTREAM_DIR=avr8-gnu-toolchain-darwin_x86_64
-#TARGET_NAME=avr-toolchain-macOS-x86_64
+UPSTREAM_ARCHIVE=avr8-gnu-toolchain-osx-3.7.0.518-darwin.any.x86_64.tar.gz
+UPSTREAM_DIR=avr8-gnu-toolchain-darwin_x86_64
+TARGET_NAME=avr-toolchain-macOS-x86_64
 
-UPSTREAM_ARCHIVE=avr8-gnu-toolchain-3.7.0.1796-linux.any.x86_64.tar.gz
-UPSTREAM_DIR=avr8-gnu-toolchain-linux_x86_64
-TARGET_NAME=avr-toolchain-linux-x86_64
+#UPSTREAM_ARCHIVE=avr8-gnu-toolchain-3.7.0.1796-linux.any.x86_64.tar.gz
+#UPSTREAM_DIR=avr8-gnu-toolchain-linux_x86_64
+#TARGET_NAME=avr-toolchain-linux-x86_64
 
 #UPSTREAM_ARCHIVE=avr8-gnu-toolchain-3.7.0.1796-win32.any.x86_64.zip
 #UPSTREAM_DIR=avr8-gnu-toolchain-win32_x86_64
@@ -19,9 +19,9 @@ TARGET_NAME=avr-toolchain-linux-x86_64
 
 PACKS=(
     Atmel.ATtiny_DFP.2.0.368.atpack
-    Atmel.AVR-Ex_DFP.2.2.56.atpack
-    Atmel.ATmega_DFP.2.0.401.atpack
-    Atmel.AVR-Dx_DFP.2.1.146.atpack
+    Atmel.AVR-Ex_DFP.2.10.205.atpack
+    Atmel.ATmega_DFP.2.2.509.atpack
+    Atmel.AVR-Dx_DFP.2.6.303.atpack
 )
 
 #PACKS=(
