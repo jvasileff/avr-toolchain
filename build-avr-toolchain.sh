@@ -26,13 +26,6 @@ PACKS=(
     Atmel.AVR-Dx_DFP.2.6.303.atpack
 )
 
-#PACKS=(
-#    Atmel.ATtiny_DFP.1.10.348.atpack
-#    Atmel.AVR-Ex_DFP.1.0.38.atpack
-#    Atmel.ATmega_DFP.1.7.374.atpack
-#    Atmel.AVR-Dx_DFP.1.10.114.atpack
-#)
-
 mkdir -p $BUILD_DIR
 mkdir -p $INSTALL_DIR
 export PATH="${INSTALL_DIR}"/bin:$PATH
@@ -68,14 +61,7 @@ fi
 if [[ ! -e "gcc-${GCC_VERSION}.tar.xz" ]]; then
     wget "https://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz"
 fi
-if [[ ! -e "config.guess" ]]; then
-    wget "http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD" -O "./config.guess"
-fi
-if [[ ! -e "config.sub" ]]; then
-    wget "http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=HEAD" -O "./config.sub"
-fi
 
-#wget 'http://packs.download.atmel.com/Atmel.ATtiny_DFP.2.0.368.atpack'
 for pack in ${PACKS[@]}; do
     if [[ ! -e ${pack} ]]; then
         wget "http://packs.download.atmel.com/$pack"
@@ -108,9 +94,6 @@ cd gcc-${GCC_VERSION}
 cd ..
 mkdir -p gcc-build
 cd gcc-build
-#    --enable-fixed-point \
-#    --with-avrlibc=yes \
-#    --disable-doc
 ../gcc-${GCC_VERSION}/configure --prefix="${INSTALL_DIR}" --program-prefix=avr- --target=avr \
     --enable-languages=c,c++ \
     --disable-nls \
@@ -134,14 +117,8 @@ heading "Build and install avr-libc"
 ############################################################
 pushd "$BUILD_DIR"
 
-if [ $(uname) = "Darwin" -a $(arch) = "arm64" ] ; then
-    # workaround for arm mac
-    export ac_cv_build=aarch64-apple-darwin
-fi
 tar xf download/avr-libc-${LIBC_VERSION}.tar.bz2
 cd avr-libc-${LIBC_VERSION}
-rm -f config.guess && cp -a ../config.guess .
-rm -f config.sub && cp -a ../config.sub .
 ./bootstrap
 ./configure --prefix="${INSTALL_DIR}" --host=avr
 make -j ${MAKE_JOBS}

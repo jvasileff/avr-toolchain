@@ -1,6 +1,2 @@
 /build/
-/*.atpack
-/*.tar.xz
-/*.tar.gz
-/*.tar.bz2
-/*.patch
+/build.log
