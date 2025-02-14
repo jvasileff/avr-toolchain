@@ -1,18 +1,17 @@
 #!/bin/bash
 
 # For Linux:
-#   apt update && apt install -y build-essential texinfo automake python3 wget zip unzip
+#   apt install mingw-w64
 #
 # For macOS:
-#   install xcode & xcode commandline tools
-#   brew install autoconf automake
-#   brew install zstd
+#   brew install mingw-w64
 
 set -eu
 shopt -s expand_aliases
 
-BUILD_DIR="$(pwd)/build"
+BUILD_DIR="$(pwd)/build-x64-windows"
 INSTALL_DIR="${BUILD_DIR}"/avr-toolchain
+HOST=x86_64-w64-mingw32
 GCC_VERSION=14.2.0
 BINTOOLS_VERSION=2.43
 LIBC_DIR=2_2_1-release
@@ -25,6 +24,13 @@ PACKS=(
     Atmel.ATmega_DFP.2.2.509.atpack
     Atmel.AVR-Dx_DFP.2.6.303.atpack
 )
+
+# Check for MinGW
+if ! command -v ${HOST}-gcc >/dev/null 2>&1; then
+    echo "Error: MinGW cross-compiler not found"
+    echo "Please install mingw-w64 package"
+    exit 1
+fi
 
 mkdir -p $BUILD_DIR
 mkdir -p $INSTALL_DIR
@@ -77,7 +83,9 @@ pushd "$BUILD_DIR"
 
 tar xf download/binutils-${BINTOOLS_VERSION}.tar.gz
 cd binutils-${BINTOOLS_VERSION}
-./configure --prefix="${INSTALL_DIR}" --program-prefix=avr- --target=avr --disable-nls --disable-werror
+./configure --prefix="${INSTALL_DIR}" --program-prefix=avr- --target=avr --disable-nls --disable-werror \
+    --host=${HOST} \
+    --without-zstd
 make -j ${MAKE_JOBS}
 make install
 
@@ -95,6 +103,7 @@ cd ..
 mkdir -p gcc-build
 cd gcc-build
 ../gcc-${GCC_VERSION}/configure --prefix="${INSTALL_DIR}" --program-prefix=avr- --target=avr \
+    --host=${HOST} \
     --enable-languages=c,c++ \
     --disable-nls \
     --disable-libssp \
@@ -106,14 +115,16 @@ cd gcc-build
     --enable-plugin \
     --enable-lto \
     --with-gnu-as \
-    --with-gnu-ld
+    --with-gnu-ld \
+    --without-zstd
+
 make -j ${MAKE_JOBS}
 make install-strip
 
 popd
 
 pushd "$INSTALL_DIR"
-cp -a libexec/gcc/avr/${GCC_VERSION}/liblto_plugin.so lib/bfd-plugins/
+cp -a libexec/gcc/avr/${GCC_VERSION}/liblto_plugin.dll lib/bfd-plugins/
 popd
 
 ############################################################
