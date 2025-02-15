@@ -67,14 +67,17 @@ jobs:
             ./build-avr-toolchain.sh"
 
     - name: Prepare Artifact Archive
+      id: prepare
       run: |
         source versions.sh
+        echo "GCC_VERSION=${GCC_VERSION}" >> $GITHUB_OUTPUT
+        echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
         cd build
         tar -cjf ../avr-toolchain-${GCC_VERSION}_${RELEASE_VERSION}-${{ matrix.host }}.tar.bz2 avr-toolchain
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: avr-toolchain-${{ env.GCC_VERSION }}_${{ env.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2
-        path: avr-toolchain-${{ env.GCC_VERSION }}_${{ env.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2
+        name: avr-toolchain-${{ steps.prepare.outputs.GCC_VERSION }}_${{ steps.prepare.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2
+        path: avr-toolchain-${{ steps.prepare.outputs.GCC_VERSION }}_${{ steps.prepare.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2
         compression-level: 0
