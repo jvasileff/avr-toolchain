@@ -13,6 +13,8 @@ jobs:
         include:
           - os: ubuntu-latest
             host: x86_64-linux-gnu
+          - os: ubuntu-latest
+            host: x86_64-mingw32
           - os: macos-latest
             host: x86_64-apple-darwin
           - os: macos-13
@@ -31,15 +33,27 @@ jobs:
       if: runner.os == 'Linux' && matrix.host != 'arm-linux-gnueabihf'
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential texinfo automake python3 wget zip unzip bzip2
+        sudo apt-get install -y build-essential texinfo automake autoconf python3 wget zip unzip bzip2
+        if [ "${{ matrix.host }}" = "x86_64-mingw32" ]; then
+          sudo apt-get install -y mingw-w64
+        fi
 
     - name: Install macOS Dependencies
       if: runner.os == 'macOS'
       run: |
         brew install autoconf automake
 
+    - name: Build Linux Toolchain for Windows Build
+      if: matrix.host == 'x86_64-mingw32'
+      run: |
+        ./build-avr-toolchain.sh
+        mv build build-linux
+        export PATH=$PWD/build-linux/avr-toolchain/bin:$PATH
+        export HOST_ARG="--host=x86_64-w64-mingw32"
+        ./build-avr-toolchain.sh
+
     - name: Build Toolchain
-      if: matrix.host != 'arm-linux-gnueabihf'
+      if: matrix.host != 'arm-linux-gnueabihf' && matrix.host != 'x86_64-mingw32'
       run: ./build-avr-toolchain.sh
 
     - name: Build Toolchain (armv7)
