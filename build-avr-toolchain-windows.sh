@@ -9,21 +9,20 @@
 set -eu
 shopt -s expand_aliases
 
+source "$(dirname "$0")/versions.sh"
+
 BUILD_DIR="$(pwd)/build-x64-windows"
 INSTALL_DIR="${BUILD_DIR}"/avr-toolchain
-HOST=x86_64-w64-mingw32
-GCC_VERSION=14.2.0
-BINTOOLS_VERSION=2.43
-LIBC_DIR=2_2_1-release
-LIBC_VERSION=2.2.1
-MAKE_JOBS=10
 
-PACKS=(
-    Atmel.ATtiny_DFP.2.0.368.atpack
-    Atmel.AVR-Ex_DFP.2.10.205.atpack
-    Atmel.ATmega_DFP.2.2.509.atpack
-    Atmel.AVR-Dx_DFP.2.6.303.atpack
-)
+LIBC_DIR=$(echo ${LIBC_VERSION} | tr '.' '_')"-release"
+HOST=x86_64-w64-mingw32
+
+# Detect number of CPU cores
+if [ "$(uname)" = "Darwin" ]; then
+    MAKE_JOBS=$(sysctl -n hw.ncpu)
+else
+    MAKE_JOBS=$(nproc)
+fi
 
 # Check for MinGW
 if ! command -v ${HOST}-gcc >/dev/null 2>&1; then
@@ -35,10 +34,6 @@ fi
 mkdir -p $BUILD_DIR
 mkdir -p $INSTALL_DIR
 export PATH="${INSTALL_DIR}"/bin:$PATH
-
-if [ -z "$MAKE_JOBS" ]; then
-    MAKE_JOBS="1"
-fi
 
 heading_and_restore() {
     >&2 echo "----------------------------------------"

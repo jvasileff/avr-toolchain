@@ -20,19 +20,49 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential texinfo automake python3 wget zip unzip
+        sudo apt-get install -y build-essential texinfo automake python3 wget zip unzip bzip2
 
     - name: Install macOS Dependencies
       if: runner.os == 'macOS'
       run: |
         brew install autoconf automake
 
+    - name: Get architecture information
+      id: arch
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          ARCH=$(uname -m)
+          case $ARCH in
+            x86_64)  ARCH_NAME="x86_64" ;;
+            aarch64) ARCH_NAME="aarch64" ;;
+            armv7l)  ARCH_NAME="armv7l" ;;
+            *)       ARCH_NAME=$ARCH ;;
+          esac
+          OS_NAME="linux"
+        else
+          ARCH=$(uname -m)
+          case $ARCH in
+            x86_64)  ARCH_NAME="x86_64" ;;
+            arm64)   ARCH_NAME="arm64" ;;
+            *)       ARCH_NAME=$ARCH ;;
+          esac
+          OS_NAME="macOS"
+        fi
+        echo "arch_name=${ARCH_NAME}" >> $GITHUB_OUTPUT
+        echo "os_name=${OS_NAME}" >> $GITHUB_OUTPUT
+
     - name: Build Toolchain
       run: ./build-avr-toolchain.sh
+
+    - name: Prepare Artifact Archive
+      run: |
+        source versions.sh
+        cd build
+        tar --owner=1000 --group=1000 -cjf ../avr-toolchain-${GCC_VERSION}_${RELEASE_VERSION}-${{ steps.arch.outputs.os_name }}-${{ steps.arch.outputs.arch_name }}.tar.bz2 avr-toolchain
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: avr-toolchain-${{ runner.os }}
-        path: build/avr-toolchain/
-        compression-level: 9
+        name: avr-toolchain-${{ env.GCC_VERSION }}_${{ env.RELEASE_VERSION }}-${{ steps.arch.outputs.os_name }}-${{ steps.arch.outputs.arch_name }}
+        path: avr-toolchain-${{ env.GCC_VERSION }}_${{ env.RELEASE_VERSION }}-${{ steps.arch.outputs.os_name }}-${{ steps.arch.outputs.arch_name }}.tar.bz2
+        compression-level: 0
