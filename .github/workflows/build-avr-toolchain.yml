@@ -10,59 +10,60 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, macos-13]
+        include:
+          - os: ubuntu-latest
+            host: x86_64-linux-gnu
+          - os: macos-latest
+            host: x86_64-apple-darwin
+          - os: macos-13
+            host: arm64-apple-darwin
+          - os: ubuntu-24.04-arm
+            host: aarch64-linux-gnu
+          - os: ubuntu-24.04-arm
+            host: arm-linux-gnueabihf
+
     runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install Linux Dependencies
-      if: runner.os == 'Linux'
+    - name: Set up Docker for armhf
+      if: matrix.host == 'arm-linux-gnueabihf'
       run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential texinfo automake python3 wget zip unzip bzip2
+        docker pull --platform linux/arm/v7 arm32v7/ubuntu:22.04
+        docker run --platform linux/arm/v7 --rm -v ${{ github.workspace }}:/workspace arm32v7/ubuntu:22.04 \
+          bash -c "apt-get update && apt-get install -y build-essential texinfo automake autoconf python3 wget zip unzip bzip2"
+
+    - name: Install Linux Dependencies
+      if: runner.os == 'Linux' && matrix.host != 'arm-linux-gnueabihf'
+      run: |
+        apt-get update
+        apt-get install -y build-essential texinfo automake python3 wget zip unzip bzip2
 
     - name: Install macOS Dependencies
       if: runner.os == 'macOS'
       run: |
         brew install autoconf automake
 
-    - name: Get architecture information
-      id: arch
-      run: |
-        if [ "$RUNNER_OS" == "Linux" ]; then
-          ARCH=$(uname -m)
-          case $ARCH in
-            x86_64)  ARCH_NAME="x86_64" ;;
-            aarch64) ARCH_NAME="aarch64" ;;
-            armv7l)  ARCH_NAME="armv7l" ;;
-            *)       ARCH_NAME=$ARCH ;;
-          esac
-          OS_NAME="linux"
-        else
-          ARCH=$(uname -m)
-          case $ARCH in
-            x86_64)  ARCH_NAME="x86_64" ;;
-            arm64)   ARCH_NAME="arm64" ;;
-            *)       ARCH_NAME=$ARCH ;;
-          esac
-          OS_NAME="macOS"
-        fi
-        echo "arch_name=${ARCH_NAME}" >> $GITHUB_OUTPUT
-        echo "os_name=${OS_NAME}" >> $GITHUB_OUTPUT
-
     - name: Build Toolchain
+      if: matrix.host != 'arm-linux-gnueabihf'
       run: ./build-avr-toolchain.sh
+
+    - name: Build Toolchain (armhf)
+      if: matrix.host == 'arm-linux-gnueabihf'
+      run: |
+        docker run --platform linux/arm/v7 --rm -v ${{ github.workspace }}:/workspace arm32v7/ubuntu:22.04 \
+          bash -c "cd /workspace && ./build-avr-toolchain.sh"
 
     - name: Prepare Artifact Archive
       run: |
         source versions.sh
         cd build
-        tar --owner=1000 --group=1000 -cjf ../avr-toolchain-${GCC_VERSION}_${RELEASE_VERSION}-${{ steps.arch.outputs.os_name }}-${{ steps.arch.outputs.arch_name }}.tar.bz2 avr-toolchain
+        tar -cjf ../avr-toolchain-${GCC_VERSION}_${RELEASE_VERSION}-${{ matrix.host }}.tar.bz2 avr-toolchain
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: avr-toolchain-${{ env.GCC_VERSION }}_${{ env.RELEASE_VERSION }}-${{ steps.arch.outputs.os_name }}-${{ steps.arch.outputs.arch_name }}
-        path: avr-toolchain-${{ env.GCC_VERSION }}_${{ env.RELEASE_VERSION }}-${{ steps.arch.outputs.os_name }}-${{ steps.arch.outputs.arch_name }}.tar.bz2
+        name: avr-toolchain-${{ env.GCC_VERSION }}_${{ env.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2
+        path: avr-toolchain-${{ env.GCC_VERSION }}_${{ env.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2
         compression-level: 0
