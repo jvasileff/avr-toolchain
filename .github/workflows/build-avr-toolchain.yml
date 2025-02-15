@@ -27,13 +27,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Docker for armhf
-      if: matrix.host == 'arm-linux-gnueabihf'
-      run: |
-        docker pull --platform linux/arm/v7 arm32v7/ubuntu:22.04
-        docker run --platform linux/arm/v7 --rm -v ${{ github.workspace }}:/workspace arm32v7/ubuntu:22.04 \
-          bash -c "apt-get update && apt-get install -y build-essential texinfo automake autoconf python3 wget zip unzip bzip2"
-
     - name: Install Linux Dependencies
       if: runner.os == 'Linux' && matrix.host != 'arm-linux-gnueabihf'
       run: |
@@ -49,11 +42,15 @@ jobs:
       if: matrix.host != 'arm-linux-gnueabihf'
       run: ./build-avr-toolchain.sh
 
-    - name: Build Toolchain (armhf)
+    - name: Build Toolchain (armv7)
       if: matrix.host == 'arm-linux-gnueabihf'
       run: |
         docker run --platform linux/arm/v7 --rm -v ${{ github.workspace }}:/workspace arm32v7/ubuntu:22.04 \
-          bash -c "cd /workspace && ./build-avr-toolchain.sh"
+          bash -c "\
+            apt-get update && \
+            apt-get install -y build-essential texinfo automake autoconf python3 wget zip unzip bzip2 && \
+            cd /workspace && \
+            ./build-avr-toolchain.sh"
 
     - name: Prepare Artifact Archive
       run: |
