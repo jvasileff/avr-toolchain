@@ -113,7 +113,6 @@ cd gcc-build
     --enable-static \
     --enable-mingw-wildcard \
     --enable-plugin \
-    --enable-lto \
     --with-gnu-as \
     --with-gnu-ld \
     --without-zstd

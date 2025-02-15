@@ -104,7 +104,6 @@ cd gcc-build
     --enable-static \
     --enable-mingw-wildcard \
     --enable-plugin \
-    --enable-lto \
     --with-gnu-as \
     --with-gnu-ld
 make -j ${MAKE_JOBS}
