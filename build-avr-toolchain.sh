@@ -18,6 +18,9 @@ INSTALL_DIR="${BUILD_DIR}"/avr-toolchain
 
 LIBC_DIR=$(echo ${LIBC_VERSION} | tr '.' '_')"-release"
 
+# Use HOST_ARG from environment if set, otherwise empty
+HOST_ARG=${HOST_ARG:-}
+
 # Detect number of CPU cores
 if [ "$(uname)" = "Darwin" ]; then
     MAKE_JOBS=$(sysctl -n hw.ncpu)
@@ -72,7 +75,7 @@ pushd "$BUILD_DIR"
 
 tar xf download/binutils-${BINTOOLS_VERSION}.tar.gz
 cd binutils-${BINTOOLS_VERSION}
-./configure --prefix="${INSTALL_DIR}" --program-prefix=avr- --target=avr --disable-nls --disable-werror
+./configure --prefix="${INSTALL_DIR}" --program-prefix=avr- --target=avr --disable-nls --disable-werror ${HOST_ARG}
 make -j ${MAKE_JOBS}
 make install
 
@@ -89,7 +92,7 @@ cd gcc-${GCC_VERSION}
 cd ..
 mkdir -p gcc-build
 cd gcc-build
-../gcc-${GCC_VERSION}/configure --prefix="${INSTALL_DIR}" --program-prefix=avr- --target=avr \
+../gcc-${GCC_VERSION}/configure --prefix="${INSTALL_DIR}" --program-prefix=avr- --target=avr ${HOST_ARG} \
     --enable-languages=c,c++ \
     --disable-nls \
     --disable-libssp \
@@ -97,17 +100,21 @@ cd gcc-build
     --with-dwarf2 \
     --disable-shared \
     --enable-static \
-    --enable-mingw-wildcard \
     --enable-plugin \
     --with-gnu-as \
-    --with-gnu-ld
+    --with-gnu-ld \
+    $([[ -n "${HOST_ARG}" ]] && echo "--enable-mingw-wildcard")
 make -j ${MAKE_JOBS}
 make install-strip
 
 popd
 
 pushd "$INSTALL_DIR"
-cp -a libexec/gcc/avr/${GCC_VERSION}/liblto_plugin.so lib/bfd-plugins/
+if [[ -n "${HOST_ARG}" ]]; then
+    cp -a libexec/gcc/avr/${GCC_VERSION}/liblto_plugin.dll lib/bfd-plugins/
+else
+    cp -a libexec/gcc/avr/${GCC_VERSION}/liblto_plugin.so lib/bfd-plugins/
+fi
 popd
 
 ############################################################
