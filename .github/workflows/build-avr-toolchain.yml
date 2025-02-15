@@ -16,9 +16,9 @@ jobs:
           - os: ubuntu-latest
             host: x86_64-mingw32
           - os: macos-latest
-            host: x86_64-apple-darwin
-          - os: macos-13
             host: arm64-apple-darwin
+          - os: macos-13
+            host: x86_64-apple-darwin
           - os: ubuntu-24.04-arm
             host: aarch64-linux-gnu
           - os: ubuntu-24.04-arm
