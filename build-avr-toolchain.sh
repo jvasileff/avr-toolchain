@@ -75,7 +75,7 @@ pushd "$BUILD_DIR"
 
 tar xf download/binutils-${BINTOOLS_VERSION}.tar.gz
 cd binutils-${BINTOOLS_VERSION}
-./configure --prefix="${INSTALL_DIR}" --program-prefix=avr- --target=avr --disable-nls --disable-werror ${HOST_ARG}
+./configure --prefix="${INSTALL_DIR}" --program-prefix=avr- --target=avr --disable-nls --disable-werror --without-zstd ${HOST_ARG}
 make -j ${MAKE_JOBS}
 make install
 
@@ -103,6 +103,7 @@ cd gcc-build
     --enable-plugin \
     --with-gnu-as \
     --with-gnu-ld \
+    --without-zstd \
     $([[ -n "${HOST_ARG}" ]] && echo "--enable-mingw-wildcard")
 make -j ${MAKE_JOBS}
 make install-strip
