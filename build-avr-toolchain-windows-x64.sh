@@ -11,7 +11,7 @@
 #   ./build-avr-toolchain.sh
 #   mv build build-linux
 #   export PATH=$PWD/build-linux/avr-toolchain/bin:$PATH
-#   ./build-avr-toolchain-windows.sh
+#   ./build-avr-toolchain-windows-x64.sh
 
 export HOST_ARG="--host=x86_64-w64-mingw32"
 exec "$(dirname "$0")/build-avr-toolchain.sh"
