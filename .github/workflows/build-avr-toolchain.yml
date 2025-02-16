@@ -31,8 +31,10 @@ jobs:
       id: versions
       run: |
         source versions.sh
+        GIT_HASH=$(git rev-parse --short HEAD)
+        DATETIME=$(TZ=UTC git log -1 --format=%cd --date=format-local:'%Y%m%d-%H%M' $GIT_HASH)
         echo "GCC_VERSION=${GCC_VERSION}" >> $GITHUB_OUTPUT
-        echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
+        echo "RELEASE_VERSION=${DATETIME}-${GIT_HASH}" >> $GITHUB_OUTPUT
 
     - name: Install Linux Dependencies
       if: runner.os == 'Linux' && matrix.host != 'arm-linux-gnueabihf'
@@ -86,8 +88,10 @@ jobs:
       id: versions
       run: |
         source versions.sh
+        GIT_HASH=$(git rev-parse --short HEAD)
+        DATETIME=$(TZ=UTC git log -1 --format=%cd --date=format-local:'%Y%m%d-%H%M' $GIT_HASH)
         echo "GCC_VERSION=${GCC_VERSION}" >> $GITHUB_OUTPUT
-        echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
+        echo "RELEASE_VERSION=${DATETIME}-${GIT_HASH}" >> $GITHUB_OUTPUT
 
     - name: Install Dependencies
       run: |
