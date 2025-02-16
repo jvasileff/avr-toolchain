@@ -112,7 +112,7 @@ cd gcc-build
     --enable-plugin \
     --without-zstd \
     $([[ "${HOST_ARG}" == "--host=i686-w64-mingw32" ]] && echo "--disable-win32-utf8-manifest") \
-    $([[ -n "${HOST_ARG}" ]] && echo "--enable-mingw-wildcard")
+    $([[ "${HOST_ARG}" == *"mingw32"* ]] && echo "--enable-mingw-wildcard")
 make -j ${MAKE_JOBS}
 make install-strip
 
