@@ -3,7 +3,7 @@
 export RELEASE_VERSION=jv01-pre
 
 export GCC_VERSION=14.2.0
-export BINTOOLS_VERSION=2.43
+export BINTOOLS_VERSION=2.44
 export LIBC_VERSION=2.2.1
 
 export PACKS=(
