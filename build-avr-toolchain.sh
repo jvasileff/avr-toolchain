@@ -114,6 +114,7 @@ cd gcc-build
     --with-gnu-as \
     --with-gnu-ld \
     --without-zstd \
+    $([[ "${HOST_ARG}" == "--host=i686-w64-mingw32" ]] && echo "--disable-win32-utf8-manifest") \
     $([[ -n "${HOST_ARG}" ]] && echo "--enable-mingw-wildcard")
 make -j ${MAKE_JOBS}
 make install-strip
@@ -136,7 +137,9 @@ pushd "$BUILD_DIR"
 tar xf download/avr-libc-${LIBC_VERSION}.tar.bz2
 cd avr-libc-${LIBC_VERSION}
 ./bootstrap
-./configure --prefix="${INSTALL_DIR}" --host=avr
+./configure \
+    --prefix="${INSTALL_DIR}" \
+    --host=avr
 make -j ${MAKE_JOBS}
 make install
 
