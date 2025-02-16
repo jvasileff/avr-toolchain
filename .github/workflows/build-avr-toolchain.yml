@@ -111,7 +111,7 @@ jobs:
     - name: Build Windows Toolchain
       run: |
         export PATH=$PWD/build-linux/avr-toolchain/bin:$PATH
-        export HOST_ARG="--host=${{ matrix.host }}"
+        export GCC_HOST="${{ matrix.host }}"
         ./build-avr-toolchain.sh
 
     - name: Prepare Artifact Archive

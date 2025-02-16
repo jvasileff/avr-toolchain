@@ -15,8 +15,8 @@
 #   mv build build-linux
 #   export PATH=$PWD/build-linux/avr-toolchain/bin:$PATH
 #   # Then build Windows toolchain:
-#   HOST_ARG="--host=i686-w64-mingw32" ./build-avr-toolchain.sh     # for 32-bit
-#   HOST_ARG="--host=x86_64-w64-mingw32" ./build-avr-toolchain.sh   # for 64-bit
+#   GCC_HOST=i686-w64-mingw32 ./build-avr-toolchain.sh     # for 32-bit
+#   GCC_HOST=x86_64-w64-mingw32 ./build-avr-toolchain.sh   # for 64-bit
 #
 # For Windows cross-compilation (from macOS):
 #   brew install mingw-w64
@@ -32,8 +32,9 @@ INSTALL_DIR="${BUILD_DIR}"/avr-toolchain
 
 LIBC_DIR=$(echo ${LIBC_VERSION} | tr '.' '_')"-release"
 
-# Use HOST_ARG from environment if set, otherwise empty
-HOST_ARG=${HOST_ARG:-}
+# Use GCC_HOST from environment if set, otherwise empty
+GCC_HOST=${GCC_HOST:-}
+HOST_ARG=${GCC_HOST:+--host=${GCC_HOST}}
 
 # Detect number of CPU cores
 if [ "$(uname)" = "Darwin" ]; then
@@ -125,15 +126,15 @@ cd gcc-build
     --disable-shared \
     --enable-plugin \
     --without-zstd \
-    $([[ "${HOST_ARG}" == "--host=i686-w64-mingw32" ]] && echo "--disable-win32-utf8-manifest") \
-    $([[ "${HOST_ARG}" == *"mingw32"* ]] && echo "--enable-mingw-wildcard")
+    $([[ "${GCC_HOST}" == "i686-w64-mingw32" ]] && echo "--disable-win32-utf8-manifest") \
+    $([[ "${GCC_HOST}" == *"mingw32"* ]] && echo "--enable-mingw-wildcard")
 make -j ${MAKE_JOBS}
 make install-strip
 
 popd
 
 pushd "$INSTALL_DIR"
-if [[ -n "${HOST_ARG}" ]]; then
+if [[ -n "${GCC_HOST}" && "${GCC_HOST}" == *"mingw32"* ]]; then
     cp -a libexec/gcc/avr/${GCC_VERSION}/liblto_plugin.dll lib/bfd-plugins/
 else
     cp -a libexec/gcc/avr/${GCC_VERSION}/liblto_plugin.so lib/bfd-plugins/
