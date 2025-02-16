@@ -12,15 +12,15 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            host_arduino: x86_64-linux-gnu
+            host: x86_64-linux-gnu
           - os: macos-latest
-            host_arduino: arm64-apple-darwin
+            host: arm64-apple-darwin
           - os: macos-13
-            host_arduino: x86_64-apple-darwin
+            host: x86_64-apple-darwin
           - os: ubuntu-24.04-arm
-            host_arduino: aarch64-linux-gnu
+            host: aarch64-linux-gnu
           - os: ubuntu-24.04-arm
-            host_arduino: arm-linux-gnueabihf
+            host: arm-linux-gnueabihf
 
     runs-on: ${{ matrix.os }}
 
@@ -35,11 +35,11 @@ jobs:
         echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
 
     - name: Install Linux Dependencies
-      if: runner.os == 'Linux' && matrix.host_arduino != 'arm-linux-gnueabihf'
+      if: runner.os == 'Linux' && matrix.host != 'arm-linux-gnueabihf'
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential texinfo automake autoconf python3 wget zip unzip bzip2
-        if [ "${{ matrix.host_arduino }}" = "x86_64-mingw32" ]; then
+        if [ "${{ matrix.host }}" = "x86_64-mingw32" ]; then
           sudo apt-get install -y mingw-w64
         fi
 
@@ -49,11 +49,11 @@ jobs:
         brew install autoconf automake
 
     - name: Build Toolchain
-      if: matrix.host_arduino != 'arm-linux-gnueabihf'
+      if: matrix.host != 'arm-linux-gnueabihf'
       run: ./build-avr-toolchain.sh
 
     - name: Build Toolchain (armv7)
-      if: matrix.host_arduino == 'arm-linux-gnueabihf'
+      if: matrix.host == 'arm-linux-gnueabihf'
       run: |
         docker run --platform linux/arm/v7 --rm -v ${{ github.workspace }}:/workspace arm32v7/ubuntu:22.04 \
           bash -c "\
@@ -65,13 +65,13 @@ jobs:
     - name: Prepare Artifact Archive
       run: |
         cd build
-        tar -cjf ../avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host_arduino }}.tar.bz2 avr-toolchain
+        tar -cjf ../avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2 avr-toolchain
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host_arduino }}.tar.bz2
-        path: avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host_arduino }}.tar.bz2
+        name: avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2
+        path: avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2
         compression-level: 0
         if-no-files-found: error
 
@@ -80,14 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: [x86, x64]
-        include:
-          - arch: x86
-            host: i686-w64-mingw32
-            host_arduino: i686-mingw32
-          - arch: x64
-            host: x86_64-w64-mingw32
-            host_arduino: x86_64-mingw32
+        host: [i686-w64-mingw32, x86_64-w64-mingw32]
 
     steps:
     - uses: actions/checkout@v4
@@ -124,12 +117,12 @@ jobs:
     - name: Prepare Artifact Archive
       run: |
         cd build
-        tar -cjf ../avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host_arduino }}.tar.bz2 avr-toolchain
+        tar -cjf ../avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2 avr-toolchain
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host_arduino }}.tar.bz2
-        path: avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host_arduino }}.tar.bz2
+        name: avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2
+        path: avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2
         compression-level: 0
         if-no-files-found: error
