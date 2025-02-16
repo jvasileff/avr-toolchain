@@ -29,12 +29,7 @@ jobs:
 
     - name: Set Version Variables
       id: versions
-      run: |
-        source versions.sh
-        GIT_HASH=$(git rev-parse --short HEAD)
-        DATETIME=$(TZ=UTC git log -1 --format=%cd --date=format-local:'%Y%m%d-%H%M' $GIT_HASH)
-        echo "GCC_VERSION=${GCC_VERSION}" >> $GITHUB_OUTPUT
-        echo "RELEASE_VERSION=${DATETIME}-${GIT_HASH}" >> $GITHUB_OUTPUT
+      run: echo "VERSION=$(.github/workflows/scripts/determine-version.js)" >> $GITHUB_OUTPUT
 
     - name: Install Linux Dependencies
       if: runner.os == 'Linux' && matrix.host != 'arm-linux-gnueabihf'
@@ -64,13 +59,13 @@ jobs:
     - name: Prepare Artifact Archive
       run: |
         cd build
-        tar -cjf ../avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2 avr-toolchain
+        tar -cjf ../avr-toolchain-${{ steps.versions.outputs.VERSION }}-${{ matrix.host }}.tar.bz2 avr-toolchain
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2
-        path: avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2
+        name: avr-toolchain-${{ steps.versions.outputs.VERSION }}-${{ matrix.host }}.tar.bz2
+        path: avr-toolchain-${{ steps.versions.outputs.VERSION }}-${{ matrix.host }}.tar.bz2
         compression-level: 0
         if-no-files-found: error
 
@@ -86,12 +81,7 @@ jobs:
 
     - name: Set Version Variables
       id: versions
-      run: |
-        source versions.sh
-        GIT_HASH=$(git rev-parse --short HEAD)
-        DATETIME=$(TZ=UTC git log -1 --format=%cd --date=format-local:'%Y%m%d-%H%M' $GIT_HASH)
-        echo "GCC_VERSION=${GCC_VERSION}" >> $GITHUB_OUTPUT
-        echo "RELEASE_VERSION=${DATETIME}-${GIT_HASH}" >> $GITHUB_OUTPUT
+      run: echo "VERSION=$(.github/workflows/scripts/determine-version.js)" >> $GITHUB_OUTPUT
 
     - name: Install Dependencies
       run: |
@@ -101,7 +91,7 @@ jobs:
     - name: Download Linux Toolchain
       uses: actions/download-artifact@v4
       with:
-        name: avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-x86_64-linux-gnu.tar.bz2
+        name: avr-toolchain-${{ steps.versions.outputs.VERSION }}-x86_64-linux-gnu.tar.bz2
 
     - name: Extract Linux Toolchain
       run: |
@@ -118,12 +108,12 @@ jobs:
     - name: Prepare Artifact Archive
       run: |
         cd build
-        tar -cjf ../avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2 avr-toolchain
+        tar -cjf ../avr-toolchain-${{ steps.versions.outputs.VERSION }}-${{ matrix.host }}.tar.bz2 avr-toolchain
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2
-        path: avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2
+        name: avr-toolchain-${{ steps.versions.outputs.VERSION }}-${{ matrix.host }}.tar.bz2
+        path: avr-toolchain-${{ steps.versions.outputs.VERSION }}-${{ matrix.host }}.tar.bz2
         compression-level: 0
         if-no-files-found: error
