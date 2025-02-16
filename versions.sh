@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export RELEASE_VERSION=jv01
+export RELEASE_VERSION=jv01-pre
 
 export GCC_VERSION=14.2.0
 export BINTOOLS_VERSION=2.43
