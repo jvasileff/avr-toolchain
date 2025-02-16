@@ -178,5 +178,24 @@ done
 popd
 
 ############################################################
+heading "Create versions.txt"
+############################################################
+
+cat > "${INSTALL_DIR}/versions.txt" << EOF
+Build Information:
+  Date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+  Host: $(uname -s) ($(uname -m))
+  Build Host: ${GCC_HOST:-native}
+
+Component Versions:
+  GCC: ${GCC_VERSION}
+  Binutils: ${BINTOOLS_VERSION}
+  AVR-Libc: ${LIBC_VERSION}
+
+Microcontroller Support:
+$(printf '  - %s\n' "${PACKS[@]}")
+EOF
+
+############################################################
 heading "Done."
 ############################################################
