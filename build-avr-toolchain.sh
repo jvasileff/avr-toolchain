@@ -75,7 +75,14 @@ pushd "$BUILD_DIR"
 
 tar xf download/binutils-${BINTOOLS_VERSION}.tar.gz
 cd binutils-${BINTOOLS_VERSION}
-./configure --prefix="${INSTALL_DIR}" --program-prefix=avr- --target=avr --disable-nls --disable-werror --without-zstd ${HOST_ARG}
+./configure \
+    --prefix="${INSTALL_DIR}" \
+    --program-prefix=avr- \
+    --target=avr \
+    --disable-nls \
+    --disable-werror \
+    --without-zstd \
+    ${HOST_ARG}
 make -j ${MAKE_JOBS}
 make install
 
@@ -92,7 +99,10 @@ cd gcc-${GCC_VERSION}
 cd ..
 mkdir -p gcc-build
 cd gcc-build
-../gcc-${GCC_VERSION}/configure --prefix="${INSTALL_DIR}" --program-prefix=avr- --target=avr ${HOST_ARG} \
+../gcc-${GCC_VERSION}/configure \
+    --prefix="${INSTALL_DIR}" \
+    --program-prefix=avr- \
+    --target=avr ${HOST_ARG} \
     --enable-languages=c,c++ \
     --disable-nls \
     --disable-libssp \
