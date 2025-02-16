@@ -109,10 +109,7 @@ cd gcc-build
     --disable-libada \
     --with-dwarf2 \
     --disable-shared \
-    --enable-static \
     --enable-plugin \
-    --with-gnu-as \
-    --with-gnu-ld \
     --without-zstd \
     $([[ "${HOST_ARG}" == "--host=i686-w64-mingw32" ]] && echo "--disable-win32-utf8-manifest") \
     $([[ -n "${HOST_ARG}" ]] && echo "--enable-mingw-wildcard")
