@@ -17,21 +17,44 @@ apt update && apt install -y build-essential texinfo automake python3 wget zip u
 1. Install Xcode and Xcode Command Line Tools
 2. Install required packages via Homebrew:
 ```bash
-brew install autoconf automake zstd
+brew install autoconf automake
+```
+
+### Windows Cross-compilation
+The toolchain can be cross-compiled for Windows from either Linux or macOS.
+
+#### From Linux:
+```bash
+apt install mingw-w64
+```
+
+#### From macOS:
+```bash
+brew install mingw-w64
 ```
 
 ## Building
 
-1. Clone this repository:
-2. Run the build script:
+### Native Build (Linux/macOS)
 ```bash
 ./build-avr-toolchain.sh
 ```
 
-The toolchain will be installed in `build/avr-toolchain`. Add this to your PATH:
+### Windows Cross-compilation
+First build the native toolchain, which will be used during the build of the Windows
+version.
 ```bash
-export PATH="$(pwd)/build/avr-toolchain/bin:$PATH"
+# Build native version first
+./build-avr-toolchain.sh
+mv build build-native
+export PATH=$PWD/build-native/avr-toolchain/bin:$PATH
+
+# Build Windows version (choose one)
+GCC_HOST=i686-w64-mingw32 ./build-avr-toolchain.sh     # 32-bit Windows
+GCC_HOST=x86_64-w64-mingw32 ./build-avr-toolchain.sh   # 64-bit Windows
 ```
+
+The toolchain will be installed in `build/avr-toolchain`.
 
 ## Included Device Support
 

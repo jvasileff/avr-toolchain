@@ -104,13 +104,13 @@ jobs:
 
     - name: Extract Linux Toolchain
       run: |
-        mkdir -p build-linux
-        cd build-linux
+        mkdir -p build-native
+        cd build-native
         tar xf ../avr-toolchain-*-x86_64-linux-gnu.tar.bz2
 
     - name: Build Windows Toolchain
       run: |
-        export PATH=$PWD/build-linux/avr-toolchain/bin:$PATH
+        export PATH=$PWD/build-native/avr-toolchain/bin:$PATH
         export GCC_HOST="${{ matrix.host }}"
         ./build-avr-toolchain.sh
 

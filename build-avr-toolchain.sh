@@ -6,14 +6,13 @@
 # For macOS:
 #   install xcode & xcode commandline tools
 #   brew install autoconf automake
-#   brew install zstd
 #
 # For Windows cross-compilation (from Linux):
 #   apt install mingw-w64
 #   # Build native toolchain first:
 #   ./build-avr-toolchain.sh
-#   mv build build-linux
-#   export PATH=$PWD/build-linux/avr-toolchain/bin:$PATH
+#   mv build build-native
+#   export PATH=$PWD/build-native/avr-toolchain/bin:$PATH
 #   # Then build Windows toolchain:
 #   GCC_HOST=i686-w64-mingw32 ./build-avr-toolchain.sh     # for 32-bit
 #   GCC_HOST=x86_64-w64-mingw32 ./build-avr-toolchain.sh   # for 64-bit
