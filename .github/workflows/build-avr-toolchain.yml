@@ -13,8 +13,6 @@ jobs:
         include:
           - os: ubuntu-latest
             host: x86_64-linux-gnu
-          - os: ubuntu-latest
-            host: x86_64-mingw32
           - os: macos-latest
             host: arm64-apple-darwin
           - os: macos-13
@@ -28,6 +26,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Set Version Variables
+      id: versions
+      run: |
+        source versions.sh
+        echo "GCC_VERSION=${GCC_VERSION}" >> $GITHUB_OUTPUT
+        echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
 
     - name: Install Linux Dependencies
       if: runner.os == 'Linux' && matrix.host != 'arm-linux-gnueabihf'
@@ -43,17 +48,8 @@ jobs:
       run: |
         brew install autoconf automake
 
-    - name: Build Linux Toolchain for Windows Build
-      if: matrix.host == 'x86_64-mingw32'
-      run: |
-        ./build-avr-toolchain.sh
-        mv build build-linux
-        export PATH=$PWD/build-linux/avr-toolchain/bin:$PATH
-        export HOST_ARG="--host=x86_64-w64-mingw32"
-        ./build-avr-toolchain.sh
-
     - name: Build Toolchain
-      if: matrix.host != 'arm-linux-gnueabihf' && matrix.host != 'x86_64-mingw32'
+      if: matrix.host != 'arm-linux-gnueabihf'
       run: ./build-avr-toolchain.sh
 
     - name: Build Toolchain (armv7)
@@ -67,17 +63,63 @@ jobs:
             ./build-avr-toolchain.sh"
 
     - name: Prepare Artifact Archive
-      id: prepare
       run: |
-        source versions.sh
-        echo "GCC_VERSION=${GCC_VERSION}" >> $GITHUB_OUTPUT
-        echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
         cd build
-        tar -cjf ../avr-toolchain-${GCC_VERSION}_${RELEASE_VERSION}-${{ matrix.host }}.tar.bz2 avr-toolchain
+        tar -cjf ../avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2 avr-toolchain
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: avr-toolchain-${{ steps.prepare.outputs.GCC_VERSION }}_${{ steps.prepare.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2
-        path: avr-toolchain-${{ steps.prepare.outputs.GCC_VERSION }}_${{ steps.prepare.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2
+        name: avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2
+        path: avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-${{ matrix.host }}.tar.bz2
         compression-level: 0
+        if-no-files-found: error
+
+  build-windows:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set Version Variables
+      id: versions
+      run: |
+        source versions.sh
+        echo "GCC_VERSION=${GCC_VERSION}" >> $GITHUB_OUTPUT
+        echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential texinfo automake autoconf python3 wget zip unzip bzip2 mingw-w64
+
+    - name: Download Linux Toolchain
+      uses: actions/download-artifact@v4
+      with:
+        name: avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-x86_64-linux-gnu.tar.bz2
+
+    - name: Extract Linux Toolchain
+      run: |
+        mkdir -p build-linux
+        cd build-linux
+        tar xf ../avr-toolchain-*-x86_64-linux-gnu.tar.bz2
+
+    - name: Build Windows Toolchain
+      run: |
+        export PATH=$PWD/build-linux/avr-toolchain/bin:$PATH
+        export HOST_ARG="--host=x86_64-w64-mingw32"
+        ./build-avr-toolchain.sh
+
+    - name: Prepare Artifact Archive
+      run: |
+        cd build
+        tar -cjf ../avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-x86_64-mingw32.tar.bz2 avr-toolchain
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-x86_64-mingw32.tar.bz2
+        path: avr-toolchain-${{ steps.versions.outputs.GCC_VERSION }}_${{ steps.versions.outputs.RELEASE_VERSION }}-x86_64-mingw32.tar.bz2
+        compression-level: 0
+        if-no-files-found: error
