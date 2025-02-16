@@ -40,7 +40,7 @@ jobs:
     - name: Install macOS Dependencies
       if: runner.os == 'macOS'
       run: |
-        brew install autoconf automake
+        brew install --quiet autoconf automake
 
     - name: Build Toolchain
       if: matrix.host != 'arm-linux-gnueabihf'
