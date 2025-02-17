@@ -1,10 +1,7 @@
-name: Build AVR Toolchain
-
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  workflow_call:
+
+name: Build AVR Toolchain
 
 jobs:
   build:
