@@ -89,6 +89,12 @@ pushd "$BUILD_DIR"
 
 tar xf download/binutils-${BINTOOLS_VERSION}.tar.gz
 cd binutils-${BINTOOLS_VERSION}
+
+# Apply macOS patch if on Darwin
+if [ "$(uname)" = "Darwin" ]; then
+    patch -p2 < "${PWD}/../../patches/binutils-macos.patch"
+fi
+
 ./configure \
     --prefix="${INSTALL_DIR}" \
     --program-prefix=avr- \
@@ -109,6 +115,12 @@ pushd "$BUILD_DIR"
 
 tar xf download/gcc-${GCC_VERSION}.tar.xz
 cd gcc-${GCC_VERSION}
+
+# Apply macOS patch if on Darwin
+if [ "$(uname)" = "Darwin" ]; then
+    patch -p2 < "${PWD}/../../patches/binutils-macos.patch"
+fi
+
 ./contrib/download_prerequisites
 cd ..
 mkdir -p gcc-build
