@@ -2,7 +2,7 @@
 
 This script builds a complete AVR toolchain including GCC, Binutils, and AVR-LibC, with support for various ATtiny and ATmega microcontrollers.
 
-- GCC 14.2.0
+- GCC 15.1.0
 - Binutils 2.44
 - AVR-LibC 2.2.1
 
