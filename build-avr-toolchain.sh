@@ -24,6 +24,14 @@
 set -eu
 shopt -s expand_aliases
 
+# Set architecture flags for macOS universal build and try to support OS X 10.8
+if [ "$(uname)" = "Darwin" ]; then
+    export CFLAGS="-arch x86_64 -arch arm64 -mmacosx-version-min=10.8"
+    export CXXFLAGS="-arch x86_64 -arch arm64 -mmacosx-version-min=10.8"
+    export LDFLAGS="-arch x86_64 -arch arm64 -mmacosx-version-min=10.8"
+    export MACOSX_DEPLOYMENT_TARGET=10.8
+fi
+
 source "$(dirname "$0")/versions.sh"
 
 BUILD_DIR="$(pwd)/build"
