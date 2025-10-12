@@ -12,7 +12,7 @@ jobs:
             host: x86_64-linux-gnu
           - os: macos-latest
             host: arm64-apple-darwin
-          - os: macos-13
+          - os: macos-15-intel
             host: x86_64-apple-darwin
           - os: ubuntu-24.04-arm
             host: aarch64-linux-gnu
