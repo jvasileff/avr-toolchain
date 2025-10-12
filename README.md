@@ -60,8 +60,8 @@ The toolchain will be installed in `build/avr-toolchain`.
 
 - ATtiny Series (DFP 2.0.368)
 - ATmega Series (DFP 2.2.509)
-- AVR-Ex Series (DFP 2.10.205)
-- AVR-Dx Series (DFP 2.6.303)
+- AVR-Ex Series (DFP 2.11.221)
+- AVR-Dx Series (DFP 2.7.321)
 
 ## License
 
