@@ -160,7 +160,6 @@ cd gcc-build
     --disable-libada \
     --with-dwarf2 \
     --disable-shared \
-    --enable-plugin \
     --without-zstd \
     $([[ "${GCC_HOST}" == "i686-w64-mingw32" ]] && echo "--disable-win32-utf8-manifest") \
     $([[ "${GCC_HOST}" == *"mingw32"* ]] && echo "--enable-mingw-wildcard")
