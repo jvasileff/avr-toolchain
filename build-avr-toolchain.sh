@@ -68,10 +68,10 @@ if [[ ! -e "avr-libc-${LIBC_VERSION}.tar.bz2" ]]; then
     wget "https://github.com/avrdudes/avr-libc/releases/download/avr-libc-${LIBC_DIR}/avr-libc-${LIBC_VERSION}.tar.bz2"
 fi
 if [[ ! -e "binutils-${BINTOOLS_VERSION}.tar.gz" ]]; then
-    wget "https://ftp.gnu.org/gnu/binutils/binutils-${BINTOOLS_VERSION}.tar.gz"
+    wget "https://ftpmirror.gnu.org/gnu/binutils/binutils-${BINTOOLS_VERSION}.tar.gz"
 fi
 if [[ ! -e "gcc-${GCC_VERSION}.tar.xz" ]]; then
-    wget "https://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz"
+    wget "https://ftpmirror.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz"
 fi
 
 for pack in ${PACKS[@]}; do
