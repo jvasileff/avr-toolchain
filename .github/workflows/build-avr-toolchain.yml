@@ -1,32 +1,32 @@
+name: Build AVR Toolchain
+
 on:
   workflow_call:
 
-name: Build AVR Toolchain
-
 jobs:
-  build:
+
+  # Linux builds
+  build-linux:
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
             host: x86_64-linux-gnu
-          - os: macos-latest
-            host: universal-apple-darwin
           - os: ubuntu-24.04-arm
             host: aarch64-linux-gnu
           - os: ubuntu-24.04-arm
             host: arm-linux-gnueabihf
-
     runs-on: ${{ matrix.os }}
-
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set Version Variables
+    - &set-version-variables
+      name: Set Version Variables
       id: versions
       run: echo "VERSION=$(.github/workflows/scripts/determine-version.js)" >> $GITHUB_OUTPUT
 
-    - name: Cache Dependencies
+    - &cache-dependencies
+      name: Cache Dependencies
       uses: actions/cache@v4
       with:
         path: build/download
@@ -35,22 +35,20 @@ jobs:
           avr-dependencies-
         enableCrossOsArchive: true
 
-    - name: Install Linux Dependencies
+    - &install-linux-dependencies
+      name: Install Linux Dependencies
       if: runner.os == 'Linux' && matrix.host != 'arm-linux-gnueabihf'
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential texinfo automake autoconf python3 wget zip unzip bzip2
+        sudo apt-get install -y build-essential texinfo automake autoconf python3 wget zip unzip bzip2 mingw-w64
 
-    - name: Install macOS Dependencies
-      if: runner.os == 'macOS'
-      run: |
-        brew install --quiet autoconf automake
-
-    - name: Build Toolchain
+    - &build-toolchain-default
+      name: Build Toolchain
       if: matrix.host != 'arm-linux-gnueabihf'
       run: ./build-avr-toolchain.sh
 
-    - name: Build Toolchain (armv7)
+    - &build-toolchain-armv7
+      name: Build Toolchain (armv7)
       if: matrix.host == 'arm-linux-gnueabihf'
       run: |
         docker run --platform linux/arm/v7 --rm -v ${{ github.workspace }}:/workspace arm32v7/ubuntu:22.04 \
@@ -60,12 +58,14 @@ jobs:
             cd /workspace && \
             ./build-avr-toolchain.sh"
 
-    - name: Prepare Artifact Archive
+    - &prepare-artifact-archive
+      name: Prepare Artifact Archive
       run: |
         cd build
         tar -cjf ../avr-toolchain-${{ steps.versions.outputs.VERSION }}-${{ matrix.host }}.tar.bz2 avr-toolchain
 
-    - name: Upload Artifacts
+    - &upload-artifacts
+      name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: avr-toolchain-${{ steps.versions.outputs.VERSION }}-${{ matrix.host }}.tar.bz2
@@ -73,33 +73,46 @@ jobs:
         compression-level: 0
         if-no-files-found: error
 
-  build-windows:
-    needs: build
-    runs-on: ubuntu-latest
+  # macOS build
+  build-macos:
     strategy:
       matrix:
-        host: [i686-w64-mingw32, x86_64-w64-mingw32]
+        include:
+          - os: macos-latest
+            host: universal-apple-darwin
+
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set Version Variables
-      id: versions
-      run: echo "VERSION=$(.github/workflows/scripts/determine-version.js)" >> $GITHUB_OUTPUT
+    - *set-version-variables
+    - *cache-dependencies
 
-    - name: Cache Dependencies
-      uses: actions/cache@v4
-      with:
-        path: build/download
-        key: avr-dependencies-${{ hashFiles('checksums.txt') }}
-        restore-keys: |
-          avr-dependencies-
-        enableCrossOsArchive: true
-
-    - name: Install Dependencies
+    - name: Install macOS Dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential texinfo automake autoconf python3 wget zip unzip bzip2 mingw-w64
+        brew install --quiet autoconf automake
+
+    - *build-toolchain-default
+    - *prepare-artifact-archive
+    - *upload-artifacts
+
+  # Windows build (needs Linux build to run its commandline tools)
+  build-windows:
+    needs: build-linux
+
+    strategy:
+      matrix:
+        host: [i686-w64-mingw32, x86_64-w64-mingw32]
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - *set-version-variables
+    - *cache-dependencies
+    - *install-linux-dependencies
 
     - name: Download Linux Toolchain
       uses: actions/download-artifact@v4
@@ -118,15 +131,5 @@ jobs:
         export GCC_HOST="${{ matrix.host }}"
         ./build-avr-toolchain.sh
 
-    - name: Prepare Artifact Archive
-      run: |
-        cd build
-        tar -cjf ../avr-toolchain-${{ steps.versions.outputs.VERSION }}-${{ matrix.host }}.tar.bz2 avr-toolchain
-
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: avr-toolchain-${{ steps.versions.outputs.VERSION }}-${{ matrix.host }}.tar.bz2
-        path: avr-toolchain-${{ steps.versions.outputs.VERSION }}-${{ matrix.host }}.tar.bz2
-        compression-level: 0
-        if-no-files-found: error
+    - *prepare-artifact-archive
+    - *upload-artifacts
