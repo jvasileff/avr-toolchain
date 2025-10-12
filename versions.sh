@@ -1,7 +1,7 @@
 #!/bin/bash
 
-export GCC_VERSION=15.1.0
-export BINTOOLS_VERSION=2.44
+export GCC_VERSION=15.2.0
+export BINTOOLS_VERSION=2.45
 export LIBC_VERSION=2.2.1
 
 export PACKS=(
