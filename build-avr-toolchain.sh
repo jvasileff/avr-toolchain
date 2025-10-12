@@ -83,6 +83,23 @@ done
 popd
 
 ############################################################
+heading "Verify Dependencies"
+############################################################
+if [ -f "checksums.txt" ]; then
+    echo "Verifying downloaded dependencies..."
+    if ! sha256sum -c --strict checksums.txt; then
+        echo "Error: Checksum verification failed!"
+        echo "Dependencies may be corrupted or checksums.txt needs updating."
+        exit 1
+    fi
+    echo "All checksums verified successfully!"
+else
+    echo "Error: checksums.txt not found!"
+    echo "Run ./generate-checksums.sh to create checksums for downloaded dependencies."
+    exit 1
+fi
+
+############################################################
 heading "Build and install binutils"
 ############################################################
 pushd "$BUILD_DIR"

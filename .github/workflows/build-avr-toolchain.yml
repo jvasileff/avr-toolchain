@@ -32,7 +32,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: build/download
-        key: avr-dependencies-${{ hashFiles('versions.sh') }}
+        key: avr-dependencies-${{ hashFiles('checksums.txt') }}
         restore-keys: |
           avr-dependencies-
         enableCrossOsArchive: true
@@ -93,7 +93,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: build/download
-        key: avr-dependencies-${{ hashFiles('versions.sh') }}
+        key: avr-dependencies-${{ hashFiles('checksums.txt') }}
         restore-keys: |
           avr-dependencies-
         enableCrossOsArchive: true

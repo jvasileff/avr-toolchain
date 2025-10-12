@@ -1,0 +1,7 @@
+006a6306cbbc938c3bdb583ac54f93fe7d7c8cf97f9cde91f91c6fb0273ab465  build/download/avr-libc-2.2.1.tar.bz2
+8a3eb4b10e7053312790f21ee1a38f7e2bbd6f4096abb590d3429e5119592d96  build/download/binutils-2.45.tar.gz
+438fd996826b0c82485a29da03a72d71d6e3541a83ec702df4271f6fe025d24e  build/download/gcc-15.2.0.tar.xz
+788d6edac21f786039ac141db8bfb5c852c8ccba848a9f3d40a8bf0eb694d186  build/download/Atmel.ATtiny_DFP.2.0.368.atpack
+c9d8897ebb00b014aa227665447b4aef983c4286dd0a27b9f0886b60ff287855  build/download/Atmel.AVR-Ex_DFP.2.11.221.atpack
+242a4aa941cce60f1cd6123e170035687373bf9b29c7d64af4dce1fe2fa401b4  build/download/Atmel.ATmega_DFP.2.2.509.atpack
+68419c6e25cfb8cf59de4a9e35c72369f7d44d026b8ba5a25e284500c37a1f6a  build/download/Atmel.AVR-Dx_DFP.2.7.321.atpack
