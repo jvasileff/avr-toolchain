@@ -28,6 +28,15 @@ jobs:
       id: versions
       run: echo "VERSION=$(.github/workflows/scripts/determine-version.js)" >> $GITHUB_OUTPUT
 
+    - name: Cache Dependencies
+      uses: actions/cache@v4
+      with:
+        path: build/download
+        key: avr-dependencies-${{ hashFiles('versions.sh') }}
+        restore-keys: |
+          avr-dependencies-
+        enableCrossOsArchive: true
+
     - name: Install Linux Dependencies
       if: runner.os == 'Linux' && matrix.host != 'arm-linux-gnueabihf'
       run: |
@@ -79,6 +88,15 @@ jobs:
     - name: Set Version Variables
       id: versions
       run: echo "VERSION=$(.github/workflows/scripts/determine-version.js)" >> $GITHUB_OUTPUT
+
+    - name: Cache Dependencies
+      uses: actions/cache@v4
+      with:
+        path: build/download
+        key: avr-dependencies-${{ hashFiles('versions.sh') }}
+        restore-keys: |
+          avr-dependencies-
+        enableCrossOsArchive: true
 
     - name: Install Dependencies
       run: |
