@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # For Linux:
-#   apt update && apt install -y build-essential texinfo automake python3 wget zip unzip
+#   apt update && apt install -y build-essential texinfo automake python3 zip unzip
 #
 # For macOS:
 #   install xcode & xcode commandline tools
@@ -24,35 +24,74 @@
 set -eu
 shopt -s expand_aliases
 
-# Set architecture flags for macOS universal build and try to support OS X 10.8
-if [ "$(uname)" = "Darwin" ]; then
-    export CFLAGS="-arch x86_64 -arch arm64 -mmacosx-version-min=10.8"
-    export CXXFLAGS="-arch x86_64 -arch arm64 -mmacosx-version-min=10.8"
-    export LDFLAGS="-arch x86_64 -arch arm64 -mmacosx-version-min=10.8"
-    export MACOSX_DEPLOYMENT_TARGET=10.8
+# For repeatable builds, unset all env vars
+unset CC CXX CFLAGS CXXFLAGS CPPFLAGS LDFLAGS AR RANLIB
+export CONFIG_SITE=/dev/null LC_ALL=C TZ=UTC
+
+# Detect OS family: prefer GCC_HOST, fallback to uname
+if [ -n "${GCC_HOST:-}" ]; then
+  case "$GCC_HOST" in
+    *-apple-darwin*) OS=macos ;;
+    *-w64-mingw32*)  OS=windows ;;
+    *-linux-gnu*|*-linux-musl*|*-linux*) OS=linux ;;
+    *) OS=unknown ;;
+  esac
+else
+  case "$(uname -s)" in
+    Darwin) OS=macos ;;
+    Linux)  OS=linux ;;
+    MINGW*|MSYS*|CYGWIN*) OS=windows ;;
+    *) OS=unknown ;;
+  esac
 fi
-
-source "$(dirname "$0")/versions.sh"
-
-BUILD_DIR="$(pwd)/build"
-INSTALL_DIR="${BUILD_DIR}"/avr-toolchain
-
-LIBC_DIR=$(echo ${LIBC_VERSION} | tr '.' '_')"-release"
 
 # Use GCC_HOST from environment if set, otherwise empty
 GCC_HOST=${GCC_HOST:-}
 HOST_ARG=${GCC_HOST:+--host=${GCC_HOST}}
 
+# Flags for libraries for microcontrollers
+COMMON_FLAGS_FOR_TARGET="-Os -ffunction-sections -fdata-sections"
+
+# Always compile with sectioning so linkers can drop unused code
+COMMON_FLAGS_HOST="-O2 -ffunction-sections -fdata-sections"
+
+# Special flags for macOS, Linux, or Windows targets
+PLATFORM_FLAGS=""
+LDFLAGS_HOST=""
+
+case "$OS" in
+  macos)
+    # Universal build; the -arch/min go in CFLAGS/CXXFLAGS (they propagate to link)
+    PLATFORM_FLAGS="-arch x86_64 -arch arm64 -mmacosx-version-min=10.8"
+    LDFLAGS_HOST="-Wl,-dead_strip"
+    ;;
+  linux)
+    LDFLAGS_HOST="-Wl,--gc-sections -Wl,--as-needed"
+    ;;
+  windows)
+    LDFLAGS_HOST="-Wl,--gc-sections"
+    ;;
+esac
+
+source ./versions.sh
+
+BUILD_DIR="$(pwd)/build"
+INSTALL_DIR="${BUILD_DIR}"/avr-toolchain
+
+LIBC_DIR="$(echo "${LIBC_VERSION}" | tr '.' '_')-release"
+
 # Detect number of CPU cores
-if [ "$(uname)" = "Darwin" ]; then
+if command -v sysctl >/dev/null && [ "$(uname)" = "Darwin" ]; then
     MAKE_JOBS=$(sysctl -n hw.ncpu)
-else
+elif command -v nproc >/dev/null; then
     MAKE_JOBS=$(nproc)
+else
+    MAKE_JOBS=1
 fi
 
-mkdir -p $BUILD_DIR
-mkdir -p $INSTALL_DIR
-export PATH="${INSTALL_DIR}"/bin:$PATH
+mkdir -p "$BUILD_DIR"
+mkdir -p "$INSTALL_DIR"
+export PATH="$INSTALL_DIR/bin:$PATH"
 
 heading_and_restore() {
     >&2 echo "----------------------------------------"
@@ -73,18 +112,18 @@ mkdir -p "${BUILD_DIR}/download"
 pushd "${BUILD_DIR}/download"
 
 if [[ ! -e "avr-libc-${LIBC_VERSION}.tar.bz2" ]]; then
-    wget "https://github.com/avrdudes/avr-libc/releases/download/avr-libc-${LIBC_DIR}/avr-libc-${LIBC_VERSION}.tar.bz2"
+    curl -L -O "https://github.com/avrdudes/avr-libc/releases/download/avr-libc-${LIBC_DIR}/avr-libc-${LIBC_VERSION}.tar.bz2"
 fi
 if [[ ! -e "binutils-${BINTOOLS_VERSION}.tar.gz" ]]; then
-    wget "https://ftpmirror.gnu.org/gnu/binutils/binutils-${BINTOOLS_VERSION}.tar.gz"
+    curl -L -O "https://ftpmirror.gnu.org/gnu/binutils/binutils-${BINTOOLS_VERSION}.tar.gz"
 fi
 if [[ ! -e "gcc-${GCC_VERSION}.tar.xz" ]]; then
-    wget "https://ftpmirror.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz"
+    curl -L -O "https://ftpmirror.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz"
 fi
 
-for pack in ${PACKS[@]}; do
-    if [[ ! -e ${pack} ]]; then
-        wget "http://packs.download.atmel.com/$pack"
+for pack in "${PACKS[@]}"; do
+    if [[ ! -e "${pack}" ]]; then
+        curl -L -O "http://packs.download.atmel.com/$pack"
     fi
 done
 
@@ -115,8 +154,8 @@ pushd "$BUILD_DIR"
 tar xf download/binutils-${BINTOOLS_VERSION}.tar.gz
 cd binutils-${BINTOOLS_VERSION}
 
-# Apply macOS patch if on Darwin
-if [ "$(uname)" = "Darwin" ]; then
+# Apply macOS patch
+if [ "$OS" = "macos" ]; then
     patch -p2 < "${PWD}/../../patches/binutils-macos.patch"
 fi
 
@@ -126,23 +165,28 @@ fi
     --target=avr \
     --disable-nls \
     --disable-werror \
+    --disable-shared \
     --without-zstd \
+    CFLAGS="$PLATFORM_FLAGS $COMMON_FLAGS_HOST" \
+    CXXFLAGS="$PLATFORM_FLAGS $COMMON_FLAGS_HOST" \
+    LDFLAGS="$LDFLAGS_HOST" \
     ${HOST_ARG}
 make -j ${MAKE_JOBS}
-make install
+make install-strip
 
 popd
 
 ############################################################
 heading "Build and install gcc"
 ############################################################
+
 pushd "$BUILD_DIR"
 
 tar xf download/gcc-${GCC_VERSION}.tar.xz
 cd gcc-${GCC_VERSION}
 
-# Apply macOS patch if on Darwin
-if [ "$(uname)" = "Darwin" ]; then
+# Apply macOS patch (same as binutils patch)
+if [ "$OS" = "macos" ]; then
     patch -p2 < "${PWD}/../../patches/binutils-macos.patch"
 fi
 
@@ -161,14 +205,27 @@ cd gcc-build
     --with-dwarf2 \
     --disable-shared \
     --without-zstd \
+    BOOT_CFLAGS="-O2 -g0" \
+    CFLAGS="$PLATFORM_FLAGS -O2" \
+    CXXFLAGS="$PLATFORM_FLAGS -O2" \
+    CFLAGS_FOR_TARGET="$COMMON_FLAGS_FOR_TARGET" \
+    CXXFLAGS_FOR_TARGET="$COMMON_FLAGS_FOR_TARGET" \
     $([[ "${GCC_HOST}" == "i686-w64-mingw32" ]] && echo "--disable-win32-utf8-manifest") \
     $([[ "${GCC_HOST}" == *"mingw32"* ]] && echo "--enable-mingw-wildcard")
+
 make -j ${MAKE_JOBS}
 make install-strip
+
+find "${INSTALL_DIR}/lib/gcc/avr" -type f -name '*.a' \
+    -exec avr-strip --strip-debug {} +
+
+find "${INSTALL_DIR}/lib/gcc/avr" -type f -name '*.a' \
+    -exec avr-ranlib {} +
 
 popd
 
 pushd "$INSTALL_DIR"
+mkdir -p "lib/bfd-plugins"
 if [[ -n "${GCC_HOST}" && "${GCC_HOST}" == *"mingw32"* ]]; then
     cp -a libexec/gcc/avr/${GCC_VERSION}/liblto_plugin.dll lib/bfd-plugins/
 else
@@ -179,6 +236,7 @@ popd
 ############################################################
 heading "Build and install avr-libc"
 ############################################################
+
 pushd "$BUILD_DIR"
 
 tar xf download/avr-libc-${LIBC_VERSION}.tar.bz2
@@ -186,9 +244,11 @@ cd avr-libc-${LIBC_VERSION}
 ./bootstrap
 ./configure \
     --prefix="${INSTALL_DIR}" \
-    --host=avr
+    --host=avr \
+    CFLAGS="$COMMON_FLAGS_FOR_TARGET" \
+    CXXFLAGS="$COMMON_FLAGS_FOR_TARGET"
 make -j ${MAKE_JOBS}
-make install
+make install-strip
 
 popd
 
@@ -198,11 +258,11 @@ heading "Install atpacks"
 
 pushd "$BUILD_DIR"
 
-for packFile in ${PACKS[@]}; do
+for packFile in "${PACKS[@]}"; do
     echo "Installing ${packFile}"
     mkdir -p pack
     cd pack
-    unzip -q ../download/${packFile}
+    unzip -q "../download/${packFile}"
     mv gcc/dev/*/device-specs/* "${INSTALL_DIR}"/lib/gcc/avr/${GCC_VERSION}/device-specs
     rmdir gcc/dev/*/device-specs
     cp -a gcc/dev/*/* "${INSTALL_DIR}"/avr/lib
