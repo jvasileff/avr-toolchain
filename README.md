@@ -10,14 +10,14 @@ This script builds a complete AVR toolchain including GCC, Binutils, and AVR-Lib
 
 ### Linux (Debian/Ubuntu)
 ```bash
-apt update && apt install -y build-essential texinfo automake python3 wget zip unzip
+apt update && apt install -y build-essential texinfo help2man automake python3 curl zip unzip
 ```
 
 ### macOS
 1. Install Xcode and Xcode Command Line Tools
 2. Install required packages via Homebrew:
 ```bash
-brew install autoconf automake
+brew install autoconf automake texinfo help2man
 ```
 
 ### Windows Cross-compilation

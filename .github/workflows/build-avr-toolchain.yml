@@ -40,7 +40,7 @@ jobs:
       if: runner.os == 'Linux' && matrix.host != 'arm-linux-gnueabihf'
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential texinfo automake autoconf python3 wget zip unzip bzip2 mingw-w64
+        sudo apt-get install -y build-essential texinfo help2man automake python3 curl zip unzip mingw-w64
 
     - &build-toolchain-default
       name: Build Toolchain
@@ -54,7 +54,7 @@ jobs:
         docker run --platform linux/arm/v7 --rm -v ${{ github.workspace }}:/workspace arm32v7/ubuntu:22.04 \
           bash -c "\
             apt-get update && \
-            apt-get install -y build-essential texinfo automake autoconf python3 wget zip unzip bzip2 && \
+            apt-get install -y build-essential texinfo help2man automake python3 curl zip unzip mingw-w64 && \
             cd /workspace && \
             ./build-avr-toolchain.sh"
 
@@ -91,7 +91,7 @@ jobs:
 
     - name: Install macOS Dependencies
       run: |
-        brew install --quiet autoconf automake
+        brew install --quiet autoconf automake texinfo help2man
 
     - *build-toolchain-default
     - *prepare-artifact-archive

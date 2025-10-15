@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # For Linux:
-#   apt update && apt install -y build-essential texinfo automake python3 zip unzip
+#   apt update && apt install -y build-essential texinfo help2man automake python3 curl zip unzip
 #
 # For macOS:
 #   install xcode & xcode commandline tools
-#   brew install autoconf automake
+#   brew install autoconf automake texinfo help2man
 #
 # For Windows cross-compilation (from Linux):
 #   apt install mingw-w64
@@ -171,6 +171,7 @@ fi
     CXXFLAGS="$PLATFORM_FLAGS $COMMON_FLAGS_HOST" \
     LDFLAGS="$LDFLAGS_HOST" \
     ${HOST_ARG}
+
 make -j ${MAKE_JOBS}
 make install-strip
 
