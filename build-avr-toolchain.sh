@@ -167,6 +167,7 @@ fi
     --disable-werror \
     --disable-shared \
     --without-zstd \
+    --enable-deterministic-archives \
     CFLAGS="$PLATFORM_FLAGS $COMMON_FLAGS_HOST" \
     CXXFLAGS="$PLATFORM_FLAGS $COMMON_FLAGS_HOST" \
     LDFLAGS="$LDFLAGS_HOST" \
