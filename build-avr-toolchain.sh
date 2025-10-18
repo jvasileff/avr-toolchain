@@ -5,7 +5,7 @@
 #
 # For macOS:
 #   install xcode & xcode commandline tools
-#   brew install autoconf automake texinfo help2man
+#   brew install autoconf automake texinfo help2man gnu-tar
 #
 # For Windows cross-compilation (from Linux):
 #   apt install mingw-w64
@@ -27,6 +27,15 @@ shopt -s expand_aliases
 # For repeatable builds, unset all env vars
 unset CC CXX CFLAGS CXXFLAGS CPPFLAGS LDFLAGS AR RANLIB
 export CONFIG_SITE=/dev/null LC_ALL=C TZ=UTC
+export SOURCE_DATE_EPOCH=$(git log -1 --format=%ct 2>/dev/null || date +%s)
+umask 022
+
+# Prefer GNU tar if available (Homebrew installs it as 'gtar')
+if command -v gtar >/dev/null 2>&1; then
+    TAR_CMD=gtar
+else
+    TAR_CMD=tar
+fi
 
 # Detect OS family: prefer GCC_HOST, fallback to uname
 if [ -n "${GCC_HOST:-}" ]; then
@@ -279,9 +288,14 @@ popd
 heading "Create versions.txt"
 ############################################################
 
+DATE_FMT="+%Y-%m-%d %H:%M:%S UTC"
+SOURCE_DATE=$(date -u -d "@$SOURCE_DATE_EPOCH" "$DATE_FMT" 2>/dev/null ||
+        date -u -r "$SOURCE_DATE_EPOCH" "$DATE_FMT" 2>/dev/null ||
+        date -u "$DATE_FMT")
+
 cat > "${INSTALL_DIR}/versions.txt" << EOF
 Build Information:
-  Date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+  Date: $SOURCE_DATE
   Host: $(uname -s) ($(uname -m))
   Build Host: ${GCC_HOST:-native}
 
@@ -293,6 +307,19 @@ Component Versions:
 Microcontroller Support:
 $(printf '  - %s\n' "${PACKS[@]}")
 EOF
+
+############################################################
+heading "Generate Archive"
+############################################################
+
+# --sort=name is not available on older versions of tar
+
+"$TAR_CMD" \
+    --mtime="@${SOURCE_DATE_EPOCH:-0}" \
+    --owner=0 --group=0 --numeric-owner \
+    --no-xattrs \
+    -C "$BUILD_DIR" \
+    -cjf "$BUILD_DIR"/avr-toolchain.tar.bz2 avr-toolchain
 
 ############################################################
 heading "Done."
