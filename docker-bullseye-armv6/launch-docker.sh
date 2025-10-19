@@ -21,4 +21,4 @@ cd "$APP_HOME" > /dev/null
 
 source settings
 
-docker run --platform $PLATFORM --rm -it -w /work -v"$APP_HOME"/..:/work $DOCKER_TAG /bin/bash -l
+docker run --platform $PLATFORM --rm -it -w /work -v"$APP_HOME"/..:/work $DOCKER_TAG "$@"
