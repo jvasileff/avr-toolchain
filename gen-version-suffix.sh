@@ -58,7 +58,7 @@ is_git_dirty() {
   if ! git_available; then
     return 1
   fi
-  ! git diff-index --quiet HEAD -- 2>/dev/null
+  ! git diff --quiet HEAD 2>/dev/null
 }
 
 get_version() {
