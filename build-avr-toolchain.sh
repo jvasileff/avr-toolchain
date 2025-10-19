@@ -213,6 +213,8 @@ cd gcc-build
     --disable-nls \
     --disable-libssp \
     --disable-libada \
+    --disable-libcc1 \
+    --disable-plugin \
     --with-dwarf2 \
     --disable-shared \
     --without-zstd \
