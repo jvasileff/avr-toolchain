@@ -45,6 +45,8 @@ FROM base AS builder
 RUN DEBIAN_FRONTEND=noninteractive \
     apt-get update \
     && apt-get install -y --no-install-recommends \
-            ca-certificates build-essential texinfo help2man automake python3 curl zip unzip tmux vim \
+            ca-certificates build-essential texinfo help2man automake \
+            python3 curl zip unzip git \
+            tmux vim \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*

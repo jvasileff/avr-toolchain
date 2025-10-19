@@ -84,6 +84,7 @@ esac
 
 source ./versions.sh
 
+VERSION_SUFFIX="$(./gen-version-suffix.sh)"
 BUILD_DIR="$(pwd)/build"
 INSTALL_DIR="${BUILD_DIR}"/avr-toolchain
 
@@ -321,7 +322,7 @@ heading "Generate Archive"
     --owner=0 --group=0 --numeric-owner \
     --no-xattrs \
     -C "$BUILD_DIR" \
-    -cjf "$BUILD_DIR"/avr-toolchain.tar.bz2 avr-toolchain
+    -cjf "$BUILD_DIR/avr-toolchain-$VERSION_SUFFIX.tar.bz2" avr-toolchain
 
 ############################################################
 heading "Done."

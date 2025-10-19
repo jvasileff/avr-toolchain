@@ -4,7 +4,7 @@ RUN yum -y update
 
 RUN yum -y install \
         texinfo help2man automake autoconf \
-        python3 curl zip unzip \
+        python3 curl zip unzip git \
         tmux vim
 
 CMD ["/bin/bash"]
