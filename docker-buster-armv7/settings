@@ -1,3 +1,0 @@
-PLATFORM=linux/arm/v7
-DOCKER_TAG=buster-toolchain-builder
-TARGET=builder

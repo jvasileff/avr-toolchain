@@ -1,11 +1,7 @@
 ######################################################################
 ## Stage 0: use debootstrap to create root filesystem
 ######################################################################
-FROM debian/eol:bullseye-slim AS bootstrap
-
-ENV RPI_MIRROR=http://archive.raspbian.org/raspbian
-ENV SUITE=bullseye
-ENV ROOTFS=/rootfs
+FROM debian:trixie-slim AS bootstrap
 
 RUN DEBIAN_FRONTEND=noninteractive \
     apt-get update \
@@ -18,6 +14,11 @@ RUN mkdir -p /tmp/raspbian-key \
     && wget -O keyring.deb https://archive.raspbian.org/raspbian/pool/main/r/raspbian-archive-keyring/raspbian-archive-keyring_20120528.4_all.deb \
     && dpkg-deb -x keyring.deb /tmp/raspbian-key/out \
     && cp /tmp/raspbian-key/out/usr/share/keyrings/raspbian-archive-keyring.gpg /usr/share/keyrings/
+
+# Configuration
+ARG RPI_MIRROR=http://archive.raspbian.org/raspbian
+ARG SUITE=buster
+ARG ROOTFS=/rootfs
 
 # Generate root filesystem
 RUN debootstrap \
@@ -50,3 +51,8 @@ RUN DEBIAN_FRONTEND=noninteractive \
             tmux vim \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Workaround bug with update-ca-certificates and openssl rehash that affects
+# debian buster and earlier
+RUN c_rehash /etc/ssl/certs
+
