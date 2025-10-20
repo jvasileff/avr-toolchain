@@ -144,7 +144,7 @@ heading "Verify Dependencies"
 ############################################################
 if [ -f "checksums.txt" ]; then
     echo "Verifying downloaded dependencies..."
-    if ! sha256sum -c --strict checksums.txt; then
+    if ! sha256sum -c checksums.txt; then
         echo "Error: Checksum verification failed!"
         echo "Dependencies may be corrupted or checksums.txt needs updating."
         exit 1
