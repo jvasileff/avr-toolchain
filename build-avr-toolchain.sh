@@ -37,26 +37,22 @@ else
     TAR_CMD=tar
 fi
 
-# Detect OS family: prefer GCC_HOST, fallback to uname
-if [ -n "${GCC_HOST:-}" ]; then
-  case "$GCC_HOST" in
-    *-apple-darwin*) OS=macos ;;
-    *-w64-mingw32*)  OS=windows ;;
-    *-linux-gnu*|*-linux-musl*|*-linux*) OS=linux ;;
-    *) OS=unknown ;;
-  esac
-else
-  case "$(uname -s)" in
-    Darwin) OS=macos ;;
-    Linux)  OS=linux ;;
-    MINGW*|MSYS*|CYGWIN*) OS=windows ;;
-    *) OS=unknown ;;
-  esac
-fi
+source ./versions.sh
 
-# Use GCC_HOST from environment if set, otherwise empty
-GCC_HOST=${GCC_HOST:-}
-HOST_ARG=${GCC_HOST:+--host=${GCC_HOST}}
+# Detect OS family
+case "$GCC_HOST" in
+  *-apple-darwin*) OS=macos ;;
+  *-w64-mingw32*)  OS=windows ;;
+  *-linux-gnu*|*-linux-musl*|*-linux*) OS=linux ;;
+  *) OS=unknown ;;
+esac
+
+# Provide --host argument except for universal-apple-darwin
+if [ "$GCC_HOST" != "universal-apple-darwin" ]; then
+  HOST_ARG="--host=${GCC_HOST}"
+else
+  HOST_ARG=""
+fi
 
 # Flags for libraries for microcontrollers
 COMMON_FLAGS_FOR_TARGET="-Os -ffunction-sections -fdata-sections"
@@ -81,8 +77,6 @@ case "$OS" in
     LDFLAGS_HOST="-Wl,--gc-sections"
     ;;
 esac
-
-source ./versions.sh
 
 VERSION_SUFFIX="$(./gen-version-suffix.sh)"
 BUILD_DIR="$(pwd)/build"

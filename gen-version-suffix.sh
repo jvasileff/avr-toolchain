@@ -101,7 +101,7 @@ get_version() {
     dirty_suffix="-dirty"
   fi
 
-  echo "${GCC_VERSION}_${datetime}-${git_hash}${dirty_suffix}"
+  echo "${GCC_VERSION}_${datetime}-${git_hash}${dirty_suffix}-${GCC_HOST}"
 }
 
 # --- main ------------------------------------------------------------------
