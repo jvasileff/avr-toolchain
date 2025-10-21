@@ -47,7 +47,7 @@ version.
 # Build native version first
 ./build-avr-toolchain.sh
 mv build build-native
-export PATH=$PWD/build-native/avr-toolchain/bin:$PATH
+export PATH="$PWD/build-native/avr-toolchain/bin:$PATH"
 
 # Build Windows version (choose one)
 GCC_HOST=i686-w64-mingw32 ./build-avr-toolchain.sh     # 32-bit Windows
