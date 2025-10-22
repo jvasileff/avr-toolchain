@@ -19,6 +19,6 @@ APP_HOME="$(getScriptDir)"
 # Work from the APP_HOME directory
 cd "$APP_HOME" > /dev/null
 
-source settings
+. ./settings
 
 docker run --rm --init --platform $PLATFORM -w /work -v"$APP_HOME"/..:/work $DOCKER_TAG "$@"

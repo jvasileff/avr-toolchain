@@ -24,6 +24,60 @@
 set -eu
 shopt -s expand_aliases
 
+# Parse command-line arguments
+TARGET_LIBS_ARCHIVE=""
+NATIVE_AVR_TOOLCHAIN_ARCHIVE=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --target-libs=*)
+            TARGET_LIBS_ARCHIVE="${1#*=}"
+            shift
+            ;;
+        --target-libs)
+            TARGET_LIBS_ARCHIVE="$2"
+            shift 2
+            ;;
+        --native-avr-toolchain=*)
+            NATIVE_AVR_TOOLCHAIN_ARCHIVE="${1#*=}"
+            shift
+            ;;
+        --native-avr-toolchain)
+            NATIVE_AVR_TOOLCHAIN_ARCHIVE="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+# Validate and convert TARGET_LIBS_ARCHIVE to absolute path if provided
+if [[ -n "$TARGET_LIBS_ARCHIVE" ]]; then
+    # Verify the file exists and is readable
+    if [[ ! -f "$TARGET_LIBS_ARCHIVE" || ! -r "$TARGET_LIBS_ARCHIVE" ]]; then
+        echo "Error: Target libs archive not found or not readable: $TARGET_LIBS_ARCHIVE"
+        exit 1
+    fi
+
+    # Convert to absolute path
+    TARGET_LIBS_ARCHIVE="$(cd "$(dirname "$TARGET_LIBS_ARCHIVE")" && pwd)/$(basename "$TARGET_LIBS_ARCHIVE")"
+    echo "Using pre-built target libraries: $TARGET_LIBS_ARCHIVE"
+fi
+
+# Validate and convert NATIVE_AVR_TOOLCHAIN_ARCHIVE to absolute path if provided
+if [[ -n "$NATIVE_AVR_TOOLCHAIN_ARCHIVE" ]]; then
+    # Verify the file exists and is readable
+    if [[ ! -f "$NATIVE_AVR_TOOLCHAIN_ARCHIVE" || ! -r "$NATIVE_AVR_TOOLCHAIN_ARCHIVE" ]]; then
+        echo "Error: Native AVR toolchain archive not found or not readable: $NATIVE_AVR_TOOLCHAIN_ARCHIVE"
+        exit 1
+    fi
+
+    # Convert to absolute path
+    NATIVE_AVR_TOOLCHAIN_ARCHIVE="$(cd "$(dirname "$NATIVE_AVR_TOOLCHAIN_ARCHIVE")" && pwd)/$(basename "$NATIVE_AVR_TOOLCHAIN_ARCHIVE")"
+    echo "Using native AVR toolchain: $NATIVE_AVR_TOOLCHAIN_ARCHIVE"
+fi
+
 # For repeatable builds, unset all env vars
 unset CC CXX CFLAGS CXXFLAGS CPPFLAGS LDFLAGS AR RANLIB
 export CONFIG_SITE=/dev/null LC_ALL=C TZ=UTC
@@ -47,12 +101,16 @@ case "$GCC_HOST" in
   *) OS=unknown ;;
 esac
 
-# Provide --host argument except for universal-apple-darwin
-if [ "$GCC_HOST" != "universal-apple-darwin" ]; then
-  HOST_ARG="--host=${GCC_HOST}"
-else
-  HOST_ARG=""
-fi
+# Provide --host argument for all but macos builds. It is needed for Canadian cross
+# builds, and also for regular cross builds to select our custom compiler
+case "$GCC_HOST" in
+  *darwin*)
+    HOST_ARG=""
+    ;;
+  *)
+    HOST_ARG="--host=$GCC_HOST"
+    ;;
+esac
 
 # Flags for libraries for microcontrollers
 COMMON_FLAGS_FOR_TARGET="-Os -ffunction-sections -fdata-sections"
@@ -66,7 +124,7 @@ LDFLAGS_HOST=""
 
 case "$OS" in
   macos)
-    # Universal build; the -arch/min go in CFLAGS/CXXFLAGS (they propagate to link)
+    # universal build
     PLATFORM_FLAGS="-arch x86_64 -arch arm64 -mmacosx-version-min=10.8"
     LDFLAGS_HOST="-Wl,-dead_strip"
     ;;
@@ -74,13 +132,17 @@ case "$OS" in
     LDFLAGS_HOST="-Wl,--gc-sections -Wl,--as-needed"
     ;;
   windows)
+    PLATFORM_FLAGS="--static"
     LDFLAGS_HOST="-Wl,--gc-sections"
     ;;
 esac
 
-VERSION_SUFFIX="$(./gen-version-suffix.sh)"
+# Source versions.sh to get BUILD_VERSION and other version info
+source ./versions.sh
+
 BUILD_DIR="$(pwd)/build"
 INSTALL_DIR="${BUILD_DIR}"/avr-toolchain
+INSTALL_TARGET_DIR="${BUILD_DIR}"/avr-target-libs
 
 LIBC_DIR="$(echo "${LIBC_VERSION}" | tr '.' '_')-release"
 
@@ -95,6 +157,20 @@ fi
 
 mkdir -p "$BUILD_DIR"
 mkdir -p "$INSTALL_DIR"
+
+# Extract and set up native AVR toolchain if provided
+if [[ -n "$NATIVE_AVR_TOOLCHAIN_ARCHIVE" ]]; then
+    NATIVE_TOOLCHAIN_DIR="${BUILD_DIR}/native-avr-toolchain"
+
+    echo "Extracting native AVR toolchain to ${NATIVE_TOOLCHAIN_DIR}..."
+    mkdir -p "$NATIVE_TOOLCHAIN_DIR"
+    "$TAR_CMD" -xf "$NATIVE_AVR_TOOLCHAIN_ARCHIVE" -C "$NATIVE_TOOLCHAIN_DIR" --strip-components=1
+
+    # Add native toolchain to PATH
+    export PATH="$NATIVE_TOOLCHAIN_DIR/bin:$PATH"
+    echo "Native AVR toolchain added to PATH"
+fi
+
 export PATH="$INSTALL_DIR/bin:$PATH"
 
 heading_and_restore() {
@@ -125,7 +201,7 @@ if [[ ! -e "gcc-${GCC_VERSION}.tar.xz" ]]; then
     curl -L -O "https://ftpmirror.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz"
 fi
 
-for pack in "${PACKS[@]}"; do
+for pack in $PACKS; do
     if [[ ! -e "${pack}" ]]; then
         curl -L -O "http://packs.download.atmel.com/$pack"
     fi
@@ -221,15 +297,10 @@ cd gcc-build
     $([[ "${GCC_HOST}" == "i686-w64-mingw32" ]] && echo "--disable-win32-utf8-manifest") \
     $([[ "${GCC_HOST}" == *"mingw32"* ]] && echo "--enable-mingw-wildcard")
 
-make -j ${MAKE_JOBS}
-make install-strip
+# Stage 1: host (compiler) binaries
 
-find "${INSTALL_DIR}/lib/gcc/avr" -type f -name '*.a' \
-    -exec avr-strip --strip-debug {} +
-
-find "${INSTALL_DIR}/lib/gcc/avr" -type f -name '*.a' \
-    -exec avr-ranlib {} +
-
+make -j ${MAKE_JOBS} all-host
+make install-strip-host
 popd
 
 pushd "$INSTALL_DIR"
@@ -241,45 +312,86 @@ else
 fi
 popd
 
-############################################################
-heading "Build and install avr-libc"
-############################################################
+if [[ -n "$TARGET_LIBS_ARCHIVE" ]]; then
+    ############################################################
+    heading "Extract pre-built avr libraries"
+    ############################################################
 
-pushd "$BUILD_DIR"
+    "$TAR_CMD" -xf "$TARGET_LIBS_ARCHIVE" -C "$INSTALL_DIR" --strip-components=1
+else
+    ############################################################
+    heading "Build and install gcc avr libraries"
+    ############################################################
 
-tar xf download/avr-libc-${LIBC_VERSION}.tar.bz2
-cd avr-libc-${LIBC_VERSION}
-./bootstrap
-./configure \
-    --prefix="${INSTALL_DIR}" \
-    --host=avr \
-    CFLAGS="$COMMON_FLAGS_FOR_TARGET" \
-    CXXFLAGS="$COMMON_FLAGS_FOR_TARGET"
-make -j ${MAKE_JOBS}
-make install-strip
+    pushd "$BUILD_DIR/gcc-build/"
 
-popd
+    make -j ${MAKE_JOBS} all-target
+    make prefix="$INSTALL_TARGET_DIR" install-strip-target
 
-############################################################
-heading "Install atpacks"
-############################################################
+    find "${INSTALL_TARGET_DIR}/lib/gcc/avr" -type f -name '*.a' \
+        -exec avr-strip --strip-debug {} +
 
-pushd "$BUILD_DIR"
+    find "${INSTALL_TARGET_DIR}/lib/gcc/avr" -type f -name '*.a' \
+        -exec avr-ranlib {} +
 
-for packFile in "${PACKS[@]}"; do
-    echo "Installing ${packFile}"
-    mkdir -p pack
-    cd pack
-    unzip -q "../download/${packFile}"
-    mv gcc/dev/*/device-specs/* "${INSTALL_DIR}"/lib/gcc/avr/${GCC_VERSION}/device-specs
-    rmdir gcc/dev/*/device-specs
-    cp -a gcc/dev/*/* "${INSTALL_DIR}"/avr/lib
-    cp -a include/avr/* "${INSTALL_DIR}"/avr/include/avr/
-    cd ..
-    rm -rf pack
-done
+    # merge what we have so far; avr-libc needs these files
+    cp -a "${INSTALL_TARGET_DIR}/"* "${INSTALL_DIR}/"
 
-popd
+    popd
+
+    ############################################################
+    heading "Build and install avr-libc"
+    ############################################################
+
+    pushd "$BUILD_DIR"
+
+    tar xf download/avr-libc-${LIBC_VERSION}.tar.bz2
+    cd avr-libc-${LIBC_VERSION}
+    ./bootstrap
+    ./configure \
+        --prefix="${INSTALL_DIR}" \
+        --host=avr \
+        CFLAGS="$COMMON_FLAGS_FOR_TARGET" \
+        CXXFLAGS="$COMMON_FLAGS_FOR_TARGET"
+    make -j ${MAKE_JOBS}
+    make prefix="${INSTALL_TARGET_DIR}" install-strip
+
+    # avr-man has absolute paths of the build machine. Better would be to patch the
+    # script to look for man pages relative to itself
+    rm "${INSTALL_TARGET_DIR}"/bin/avr-man
+
+    popd
+
+    # don't merge into $INSTALL_DIR yet; atpacks overwrite portions of avr-libc
+
+    ############################################################
+    heading "Install atpacks"
+    ############################################################
+
+    pushd "$BUILD_DIR"
+
+    mkdir -p "${INSTALL_TARGET_DIR}/lib/gcc/avr/${GCC_VERSION}/device-specs"
+    mkdir -p "${INSTALL_TARGET_DIR}/avr/lib"
+    mkdir -p "${INSTALL_TARGET_DIR}/avr/include/avr"
+
+    for packFile in $PACKS; do
+        echo "Installing ${packFile}"
+        mkdir -p pack
+        cd pack
+        unzip -q "../download/${packFile}"
+        mv gcc/dev/*/device-specs/* "${INSTALL_TARGET_DIR}/lib/gcc/avr/${GCC_VERSION}/device-specs/"
+        rmdir gcc/dev/*/device-specs
+        cp -a gcc/dev/*/* "${INSTALL_TARGET_DIR}/avr/lib/"
+        cp -a include/avr/* "${INSTALL_TARGET_DIR}/avr/include/avr/"
+        cd ..
+        rm -rf pack
+    done
+
+    popd
+
+    # Merge avr-libc and atpack files into target
+    cp -a "${INSTALL_TARGET_DIR}/"* "${INSTALL_DIR}/"
+fi
 
 ############################################################
 heading "Create versions.txt"
@@ -301,22 +413,50 @@ Component Versions:
   Binutils: ${BINTOOLS_VERSION}
   AVR-Libc: ${LIBC_VERSION}
 
-Microcontroller Support:
-$(printf '  - %s\n' "${PACKS[@]}")
+Included AtPacks:
+$(for pack in $PACKS; do echo "  - $pack"; done)
 EOF
 
 ############################################################
-heading "Generate Archive"
+heading "Generate Archives"
 ############################################################
 
-# --sort=name is not available on older versions of tar
+# Set all file timestamps to SOURCE_DATE_EPOCH for reproducible builds
+# Use BSD-compatible format that works on both macOS and Linux
+TOUCH_DATE=$(date -u -r "$SOURCE_DATE_EPOCH" "+%Y%m%d%H%M.%S" 2>/dev/null || \
+             date -u -d "@$SOURCE_DATE_EPOCH" "+%Y%m%d%H%M.%S" 2>/dev/null)
+find "$BUILD_DIR/avr-toolchain" -print0 | xargs -0 touch -h -t "$TOUCH_DATE"
 
-"$TAR_CMD" \
-    --mtime="@${SOURCE_DATE_EPOCH:-0}" \
-    --owner=0 --group=0 --numeric-owner \
-    --no-xattrs \
-    -C "$BUILD_DIR" \
-    -cjf "$BUILD_DIR/avr-toolchain-$VERSION_SUFFIX.tar.bz2" avr-toolchain
+# Determine archive format based on target platform
+case "$GCC_HOST" in
+  *mingw32*)
+    # Windows builds use .zip for better native compatibility
+    ARCHIVE_EXT=".zip"
+    pushd "$BUILD_DIR"
+    TZ=UTC zip -X -q -r "avr-toolchain-$BUILD_VERSION-$GCC_HOST.zip" avr-toolchain
+    popd
+    ;;
+  *)
+    # Linux and macOS builds use .tar.xz
+    ARCHIVE_EXT=".tar.xz"
+    "$TAR_CMD" \
+        --mtime="@${SOURCE_DATE_EPOCH:-0}" \
+        --owner=0 --group=0 --numeric-owner \
+        --no-xattrs \
+        -C "$BUILD_DIR" \
+        -cJf "$BUILD_DIR/avr-toolchain-$BUILD_VERSION-$GCC_HOST.tar.xz" avr-toolchain
+    ;;
+esac
+
+# Also create target-only archive for reuse in cross builds (always tar.xz)
+if [[ -z "$TARGET_LIBS_ARCHIVE" ]]; then
+    "$TAR_CMD" \
+        --mtime="@${SOURCE_DATE_EPOCH:-0}" \
+        --owner=0 --group=0 --numeric-owner \
+        --no-xattrs \
+        -C "$BUILD_DIR" \
+        -cJf "$BUILD_DIR/avr-target-libs-$BUILD_VERSION.tar.xz" avr-target-libs
+fi
 
 ############################################################
 heading "Done."

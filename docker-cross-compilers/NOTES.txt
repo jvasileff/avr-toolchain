@@ -1,0 +1,11 @@
+ct-ng list-samples
+ct-ng x86_64-unknown-linux-gnu
+
+ct-ng savedefconfig
+
+ct-ng menuconfig
+
+# also edit defconfig manually
+
+ct-ng defconfig
+ct-ng build

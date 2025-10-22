@@ -5,25 +5,24 @@ on:
 
 jobs:
 
-  # Linux builds
-  build-linux:
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            host: x86_64-linux-gnu
-          - os: ubuntu-24.04-arm
-            host: aarch64-linux-gnu
-          - os: ubuntu-24.04-arm
-            host: arm-linux-gnueabihf
-    runs-on: ${{ matrix.os }}
+  # Initial aarch64 build - produces both toolchain and target libs
+  build-aarch64:
+    runs-on: ubuntu-24.04-arm
+    container:
+      image: ghcr.io/jvasileff/avr-toolchain/avr-cross-builder:latest
+
     steps:
     - uses: actions/checkout@v4
 
-    - &set-version-variables
-      name: Set Version Variables
+    - name: Configure Git Safe Directory
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+    - name: Set Version Variables
       id: versions
-      run: echo "VERSION=$(.github/workflows/scripts/determine-version.js)" >> $GITHUB_OUTPUT
+      run: |
+        . ./versions.sh
+        echo "BUILD_VERSION=$BUILD_VERSION" | tee -a $GITHUB_OUTPUT
+        echo "GCC_HOST=$GCC_HOST" | tee -a $GITHUB_OUTPUT
 
     - &cache-dependencies
       name: Cache Dependencies
@@ -35,101 +34,131 @@ jobs:
           avr-dependencies-
         enableCrossOsArchive: true
 
-    - &install-linux-dependencies
-      name: Install Linux Dependencies
-      if: runner.os == 'Linux' && matrix.host != 'arm-linux-gnueabihf'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential texinfo help2man automake python3 curl zip unzip mingw-w64
+    - name: Build aarch64 Toolchain
+      run: GCC_HOST=${{ steps.versions.outputs.GCC_HOST }} ./build-avr-toolchain.sh
 
-    - &build-toolchain-default
-      name: Build Toolchain
-      if: matrix.host != 'arm-linux-gnueabihf'
-      run: ./build-avr-toolchain.sh
-
-    - &build-toolchain-armv7
-      name: Build Toolchain (armv7)
-      if: matrix.host == 'arm-linux-gnueabihf'
-      run: |
-        docker run --platform linux/arm/v7 --rm -v ${{ github.workspace }}:/workspace arm32v7/ubuntu:22.04 \
-          bash -c "\
-            apt-get update && \
-            apt-get install -y build-essential texinfo help2man automake python3 curl zip unzip mingw-w64 && \
-            cd /workspace && \
-            ./build-avr-toolchain.sh"
-
-    - &prepare-artifact-archive
-      name: Prepare Artifact Archive
-      run: |
-        cd build
-        tar -cjf ../avr-toolchain-${{ steps.versions.outputs.VERSION }}-${{ matrix.host }}.tar.bz2 avr-toolchain
-
-    - &upload-artifacts
-      name: Upload Artifacts
+    - name: Upload Toolchain Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: avr-toolchain-${{ steps.versions.outputs.VERSION }}-${{ matrix.host }}.tar.bz2
-        path: avr-toolchain-${{ steps.versions.outputs.VERSION }}-${{ matrix.host }}.tar.bz2
+        name: avr-toolchain-${{ steps.versions.outputs.BUILD_VERSION }}-${{ steps.versions.outputs.GCC_HOST }}.tar.xz
+        path: build/avr-toolchain-${{ steps.versions.outputs.BUILD_VERSION }}-${{ steps.versions.outputs.GCC_HOST }}.tar.xz
+        compression-level: 0
+        if-no-files-found: error
+
+    - name: Upload Target Libs Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: avr-target-libs-${{ steps.versions.outputs.BUILD_VERSION }}.tar.xz
+        path: build/avr-target-libs-${{ steps.versions.outputs.BUILD_VERSION }}.tar.xz
+        compression-level: 0
+        if-no-files-found: error
+
+  # Linux and Windows builds using Docker
+  build-cross:
+    needs: build-aarch64
+    strategy:
+      matrix:
+        host:
+          - aarch64-linux-musl
+          - armv6-linux-gnueabihf
+          - armv6-linux-musleabihf
+          - i686-linux-gnu
+          - i686-w64-mingw32
+          - x86_64-linux-gnu
+          - x86_64-linux-musl
+          - x86_64-w64-mingw32
+
+    runs-on: ubuntu-24.04-arm
+    container:
+      image: ghcr.io/jvasileff/avr-toolchain/avr-cross-builder:latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Configure Git Safe Directory
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+    - name: Set Version Variables
+      id: versions
+      run: |
+        . ./versions.sh
+        echo "BUILD_VERSION=$BUILD_VERSION" | tee -a $GITHUB_OUTPUT
+        echo "NATIVE_GCC_HOST=$GCC_HOST" | tee -a $GITHUB_OUTPUT
+        echo "GCC_HOST=${{ matrix.host }}" | tee -a $GITHUB_OUTPUT
+        case "${{ matrix.host }}" in
+          *mingw32*)
+            echo "ARCHIVE_EXT=.zip" | tee -a $GITHUB_OUTPUT
+            ;;
+          *)
+            echo "ARCHIVE_EXT=.tar.xz" | tee -a $GITHUB_OUTPUT
+            ;;
+        esac
+
+    - *cache-dependencies
+
+    - name: Download Target Libs
+      uses: actions/download-artifact@v4
+      with:
+        name: avr-target-libs-${{ steps.versions.outputs.BUILD_VERSION }}.tar.xz
+
+    - name: Download Native Toolchain (aarch64)
+      uses: actions/download-artifact@v4
+      with:
+        name: avr-toolchain-${{ steps.versions.outputs.BUILD_VERSION }}-${{ steps.versions.outputs.NATIVE_GCC_HOST }}.tar.xz
+
+    - name: Build Toolchain
+      run: |
+        GCC_HOST=${{ steps.versions.outputs.GCC_HOST }} ./build-avr-toolchain.sh \
+          --target-libs=avr-target-libs-${{ steps.versions.outputs.BUILD_VERSION }}.tar.xz \
+          --native-avr-toolchain=avr-toolchain-${{ steps.versions.outputs.BUILD_VERSION }}-${{ steps.versions.outputs.NATIVE_GCC_HOST }}.tar.xz
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: avr-toolchain-${{ steps.versions.outputs.BUILD_VERSION }}-${{ steps.versions.outputs.GCC_HOST }}${{ steps.versions.outputs.ARCHIVE_EXT }}
+        path: build/avr-toolchain-${{ steps.versions.outputs.BUILD_VERSION }}-${{ steps.versions.outputs.GCC_HOST }}${{ steps.versions.outputs.ARCHIVE_EXT }}
         compression-level: 0
         if-no-files-found: error
 
   # macOS build
   build-macos:
-    strategy:
-      matrix:
-        include:
-          - os: macos-latest
-            host: universal-apple-darwin
-
-    runs-on: ${{ matrix.os }}
+    needs: build-aarch64
+    runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v4
 
-    - *set-version-variables
+    - name: Configure Git Safe Directory
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+    - name: Set Version Variables
+      id: versions
+      run: |
+        . ./versions.sh
+        echo "BUILD_VERSION=$BUILD_VERSION" | tee -a $GITHUB_OUTPUT
+        echo "GCC_HOST=$GCC_HOST" | tee -a $GITHUB_OUTPUT
+        echo "ARCHIVE_EXT=.tar.xz" | tee -a $GITHUB_OUTPUT
+
     - *cache-dependencies
 
     - name: Install macOS Dependencies
       run: |
         brew install --quiet autoconf automake texinfo help2man
 
-    - *build-toolchain-default
-    - *prepare-artifact-archive
-    - *upload-artifacts
-
-  # Windows build (needs Linux build to run its commandline tools)
-  build-windows:
-    needs: build-linux
-
-    strategy:
-      matrix:
-        host: [i686-w64-mingw32, x86_64-w64-mingw32]
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - *set-version-variables
-    - *cache-dependencies
-    - *install-linux-dependencies
-
-    - name: Download Linux Toolchain
+    - name: Download Target Libs
       uses: actions/download-artifact@v4
       with:
-        name: avr-toolchain-${{ steps.versions.outputs.VERSION }}-x86_64-linux-gnu.tar.bz2
+        name: avr-target-libs-${{ steps.versions.outputs.BUILD_VERSION }}.tar.xz
 
-    - name: Extract Linux Toolchain
+    - name: Build macOS Toolchain
       run: |
-        mkdir -p build-native
-        cd build-native
-        tar xf ../avr-toolchain-*-x86_64-linux-gnu.tar.bz2
+        ./build-avr-toolchain.sh \
+          --target-libs=avr-target-libs-${{ steps.versions.outputs.BUILD_VERSION }}.tar.xz
 
-    - name: Build Windows Toolchain
-      run: |
-        export PATH=$PWD/build-native/avr-toolchain/bin:$PATH
-        export GCC_HOST="${{ matrix.host }}"
-        ./build-avr-toolchain.sh
-
-    - *prepare-artifact-archive
-    - *upload-artifacts
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: avr-toolchain-${{ steps.versions.outputs.BUILD_VERSION }}-${{ steps.versions.outputs.GCC_HOST }}${{ steps.versions.outputs.ARCHIVE_EXT }}
+        path: build/avr-toolchain-${{ steps.versions.outputs.BUILD_VERSION }}-${{ steps.versions.outputs.GCC_HOST }}${{ steps.versions.outputs.ARCHIVE_EXT }}
+        compression-level: 0
+        if-no-files-found: error

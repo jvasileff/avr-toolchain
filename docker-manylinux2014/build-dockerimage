@@ -19,7 +19,7 @@ APP_HOME="$(getScriptDir)"
 # Work from the APP_HOME directory
 cd "$APP_HOME" > /dev/null
 
-source settings
+. ./settings
 
 docker buildx build \
     --platform $PLATFORM \
