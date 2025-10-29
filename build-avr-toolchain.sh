@@ -425,7 +425,7 @@ heading "Generate Archives"
 # Use BSD-compatible format that works on both macOS and Linux
 TOUCH_DATE=$(date -u -r "$SOURCE_DATE_EPOCH" "+%Y%m%d%H%M.%S" 2>/dev/null || \
              date -u -d "@$SOURCE_DATE_EPOCH" "+%Y%m%d%H%M.%S" 2>/dev/null)
-find "$BUILD_DIR/avr-toolchain" -print0 | xargs -0 touch -h -t "$TOUCH_DATE"
+find "$BUILD_DIR/avr-toolchain" -exec touch -h -t "$TOUCH_DATE" {} +
 
 # Determine archive format based on target platform
 case "$GCC_HOST" in
@@ -433,13 +433,15 @@ case "$GCC_HOST" in
     # Windows builds use .zip for better native compatibility
     ARCHIVE_EXT=".zip"
     pushd "$BUILD_DIR"
-    TZ=UTC zip -X -q -r "avr-toolchain-$BUILD_VERSION-$GCC_HOST.zip" avr-toolchain
+    TZ=UTC LC_ALL=C find avr-toolchain -print | sort |
+        zip -X -q -9 -@ "avr-toolchain-$BUILD_VERSION-$GCC_HOST.zip"
     popd
     ;;
   *)
     # Linux and macOS builds use .tar.xz
     ARCHIVE_EXT=".tar.xz"
     "$TAR_CMD" \
+        --sort=name \
         --mtime="@${SOURCE_DATE_EPOCH:-0}" \
         --owner=0 --group=0 --numeric-owner \
         --no-xattrs \
@@ -451,6 +453,7 @@ esac
 # Also create target-only archive for reuse in cross builds (always tar.xz)
 if [[ -z "$TARGET_LIBS_ARCHIVE" ]]; then
     "$TAR_CMD" \
+        --sort=name \
         --mtime="@${SOURCE_DATE_EPOCH:-0}" \
         --owner=0 --group=0 --numeric-owner \
         --no-xattrs \
