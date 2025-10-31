@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -eu
+
 getScriptDir() {
   (
     TARGET="${BASH_SOURCE:-$0}"
@@ -22,6 +24,7 @@ cd "$APP_HOME" > /dev/null
 . ./settings
 
 docker buildx build \
+    --progress=plain \
     --platform $PLATFORM \
     -t $DOCKER_TAG \
     --target $TARGET \

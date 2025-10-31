@@ -36,39 +36,48 @@ ENV CT_PREFIX=/opt/x-tools
 
 RUN rm -rf build
 COPY ct-defconfigs/defconfig-aarch64-linux-gnu build/defconfig
-RUN cd build && ct-ng defconfig && ct-ng build > out.log 2> err.log
+RUN cd build && ct-ng defconfig && ct-ng build > out.log 2> err.log || \
+    (echo "=== STDERR ===" && cat err.log && echo "=== STDOUT ===" && cat out.log && exit 1)
 
 RUN rm -rf build
 COPY ct-defconfigs/defconfig-armv6-linux-gnueabihf build/defconfig
-RUN cd build && ct-ng defconfig && ct-ng build > out.log 2> err.log
+RUN cd build && ct-ng defconfig && ct-ng build > out.log 2> err.log || \
+    (echo "=== STDERR ===" && cat err.log && echo "=== STDOUT ===" && cat out.log && exit 1)
 
 RUN rm -rf build
 COPY ct-defconfigs/defconfig-x86_64-linux-gnu build/defconfig
-RUN cd build && ct-ng defconfig && ct-ng build > out.log 2> err.log
+RUN cd build && ct-ng defconfig && ct-ng build > out.log 2> err.log || \
+    (echo "=== STDERR ===" && cat err.log && echo "=== STDOUT ===" && cat out.log && exit 1)
 
 RUN rm -rf build
 COPY ct-defconfigs/defconfig-x86_64-w64-mingw32 build/defconfig
-RUN cd build && ct-ng defconfig && ct-ng build > out.log 2> err.log
+RUN cd build && ct-ng defconfig && ct-ng build > out.log 2> err.log || \
+    (echo "=== STDERR ===" && cat err.log && echo "=== STDOUT ===" && cat out.log && exit 1)
 
 RUN rm -rf build
 COPY ct-defconfigs/defconfig-aarch64-linux-musl build/defconfig
-RUN cd build && ct-ng defconfig && ct-ng build > out.log 2> err.log
+RUN cd build && ct-ng defconfig && ct-ng build > out.log 2> err.log || \
+    (echo "=== STDERR ===" && cat err.log && echo "=== STDOUT ===" && cat out.log && exit 1)
 
 RUN rm -rf build
 COPY ct-defconfigs/defconfig-armv6-linux-musleabihf build/defconfig
-RUN cd build && ct-ng defconfig && ct-ng build > out.log 2> err.log
+RUN cd build && ct-ng defconfig && ct-ng build > out.log 2> err.log || \
+    (echo "=== STDERR ===" && cat err.log && echo "=== STDOUT ===" && cat out.log && exit 1)
 
 RUN rm -rf build
 COPY ct-defconfigs/defconfig-x86_64-linux-musl build/defconfig
-RUN cd build && ct-ng defconfig && ct-ng build > out.log 2> err.log
+RUN cd build && ct-ng defconfig && ct-ng build > out.log 2> err.log || \
+    (echo "=== STDERR ===" && cat err.log && echo "=== STDOUT ===" && cat out.log && exit 1)
 
 RUN rm -rf build
 COPY ct-defconfigs/defconfig-i686-linux-gnu build/defconfig
-RUN cd build && ct-ng defconfig && ct-ng build > out.log 2> err.log
+RUN cd build && ct-ng defconfig && ct-ng build > out.log 2> err.log || \
+    (echo "=== STDERR ===" && cat err.log && echo "=== STDOUT ===" && cat out.log && exit 1)
 
 RUN rm -rf build
 COPY ct-defconfigs/defconfig-i686-w64-mingw32 build/defconfig
-RUN cd build && ct-ng defconfig && ct-ng build > out.log 2> err.log
+RUN cd build && ct-ng defconfig && ct-ng build > out.log 2> err.log || \
+    (echo "=== STDERR ===" && cat err.log && echo "=== STDOUT ===" && cat out.log && exit 1)
 
 CMD ["/bin/bash"]
 
