@@ -37,8 +37,8 @@ else
     echo "WARNING: Missing gcc-${GCC_VERSION}.tar.xz"
 fi
 
-# Add checksums for each pack
-for pack in "${PACKS[@]}"; do
+# Iterate over PACKS as a multi-line string
+for pack in $(echo "$PACKS" | tr -s '\n' '\n' | grep -v '^$'); do
     if [ -f "${DOWNLOAD_DIR}/${pack}" ]; then
         sha256sum "${DOWNLOAD_DIR}/${pack}" >> "$CHECKSUMS_FILE"
     else
