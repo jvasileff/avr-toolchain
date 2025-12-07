@@ -6,4 +6,3 @@
 68419c6e25cfb8cf59de4a9e35c72369f7d44d026b8ba5a25e284500c37a1f6a  build/download/Atmel.AVR-Dx_DFP.2.7.321.atpack
 c9d8897ebb00b014aa227665447b4aef983c4286dd0a27b9f0886b60ff287855  build/download/Atmel.AVR-Ex_DFP.2.11.221.atpack
 0ffb104469046a732dc50fc5a74c2a209bc299c82e864f830498b3cd3c57296e  build/download/Atmel.AVR-Lx_DFP.1.1.20.atpack
-e31b8812ab671848814453d893b31e676d9b73703b5b2f9eaca7d90b05a476a6  build/download/Atmel.AVR-Sx_DFP.1.1.17.atpack

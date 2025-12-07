@@ -10,7 +10,6 @@ PACKS="
     Atmel.AVR-Dx_DFP.2.7.321.atpack
     Atmel.AVR-Ex_DFP.2.11.221.atpack
     Atmel.AVR-Lx_DFP.1.1.20.atpack
-    Atmel.AVR-Sx_DFP.1.1.17.atpack
 "
 
 # --- Set BUILD_VERSION ------------------------------------------------------
