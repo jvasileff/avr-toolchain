@@ -158,21 +158,26 @@ fi
 mkdir -p "$BUILD_DIR"
 mkdir -p "$INSTALL_DIR"
 
-# Test if build directory filesystem is case sensitive
-TEST_DIR_1="$BUILD_DIR/CaseSensitivityTest"
-TEST_DIR_2="$BUILD_DIR/casesensitivitytest"
-rmdir "$TEST_DIR_1" "$TEST_DIR_2" 2>/dev/null || true
-mkdir "$TEST_DIR_1" 2>/dev/null || true
-if ! mkdir "$TEST_DIR_2" 2>/dev/null; then
-    # mkdir failed: filesystem is case-insensitive
-    rmdir "$TEST_DIR_1" 2>/dev/null || true
-    >&2 echo "ERROR: Case-insensitive filesystem detected"
-    >&2 echo "This filesystem will cause issues with GCC target library compilation of"
-    >&2 echo "the object files _fractSFSQ.o and _fractSFUSQ.o."
-    >&2 echo "Please build on a case-sensitive filesystem."
-    exit 1
+# Only enforce case-sensitive filesystem when we're going to build
+# the AVR target libraries locally (i.e. no pre-built archive supplied).
+if [[ -z "$TARGET_LIBS_ARCHIVE" ]]; then
+    # Test if build directory filesystem is case sensitive
+    TEST_DIR_1="$BUILD_DIR/CaseSensitivityTest"
+    TEST_DIR_2="$BUILD_DIR/casesensitivitytest"
+    rmdir "$TEST_DIR_1" "$TEST_DIR_2" 2>/dev/null || true
+    mkdir "$TEST_DIR_1" 2>/dev/null || true
+    if ! mkdir "$TEST_DIR_2" 2>/dev/null; then
+        # mkdir failed: filesystem is case-insensitive
+        rmdir "$TEST_DIR_1" 2>/dev/null || true
+        >&2 echo "ERROR: Case-insensitive filesystem detected"
+        >&2 echo "This filesystem will cause issues with GCC target library compilation of"
+        >&2 echo "the object files _fractSFSQ.o and _fractSFUSQ.o."
+        >&2 echo "Please build on a case-sensitive filesystem, or"
+        >&2 echo "provide a pre-built TARGET_LIBS_ARCHIVE."
+        exit 1
+    fi
+    rmdir "$TEST_DIR_1" "$TEST_DIR_2" 2>/dev/null || true
 fi
-rmdir "$TEST_DIR_1" "$TEST_DIR_2" 2>/dev/null || true
 
 # Extract and set up native AVR toolchain if provided
 if [[ -n "$NATIVE_AVR_TOOLCHAIN_ARCHIVE" ]]; then
