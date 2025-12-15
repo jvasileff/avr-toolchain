@@ -224,7 +224,7 @@ fi
 
 for pack in $PACKS; do
     if [[ ! -e "${pack}" ]]; then
-        curl -L -O "http://packs.download.atmel.com/$pack"
+        curl -L -O "https://packs.download.microchip.com/$pack"
     fi
 done
 
