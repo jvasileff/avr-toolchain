@@ -216,18 +216,18 @@ mkdir -p "${BUILD_DIR}/download"
 pushd "${BUILD_DIR}/download"
 
 if [[ ! -e "avr-libc-${LIBC_VERSION}.tar.bz2" ]]; then
-    curl -L -O "https://github.com/avrdudes/avr-libc/releases/download/avr-libc-${LIBC_DIR}/avr-libc-${LIBC_VERSION}.tar.bz2"
+    curl -L --retry 3 --retry-delay 5 -O "https://github.com/avrdudes/avr-libc/releases/download/avr-libc-${LIBC_DIR}/avr-libc-${LIBC_VERSION}.tar.bz2"
 fi
 if [[ ! -e "binutils-${BINTOOLS_VERSION}.tar.gz" ]]; then
-    curl -L -O "https://ftpmirror.gnu.org/gnu/binutils/binutils-${BINTOOLS_VERSION}.tar.gz"
+    curl -L --retry 3 --retry-delay 5 -O "https://ftp.gnu.org/gnu/binutils/binutils-${BINTOOLS_VERSION}.tar.gz"
 fi
 if [[ ! -e "gcc-${GCC_VERSION}.tar.xz" ]]; then
-    curl -L -O "https://ftpmirror.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz"
+    curl -L --retry 3 --retry-delay 5 -O "https://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz"
 fi
 
 for pack in $PACKS; do
     if [[ ! -e "${pack}" ]]; then
-        curl -L -O "https://packs.download.microchip.com/$pack"
+        curl -L --retry 3 --retry-delay 5 -O "https://packs.download.microchip.com/$pack"
     fi
 done
 
