@@ -63,7 +63,7 @@ BUILD_VERSION=$(
     if git_available; then
       local tags=$(get_tags_at_head || true)
       for t in $tags; do
-        if echo "$t" | grep -q '^v[0-9]\+\.[0-9]\+\.[0-9]\+_*$'; then
+        if echo "$t" | grep -q '^v[0-9]\+\.[0-9]\+\.[0-9]\+\(_.*\)\?$'; then
           version_tag="$t"
           break
         fi

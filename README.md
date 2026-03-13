@@ -54,14 +54,16 @@ GCC_HOST=i686-w64-mingw32 ./build-avr-toolchain.sh     # 32-bit Windows
 GCC_HOST=x86_64-w64-mingw32 ./build-avr-toolchain.sh   # 64-bit Windows
 ```
 
-The toolchain will be installed in `build/avr-toolchain`.
+The toolchain will be installed in `build/compile/avr-toolchain`, and archives will be
+placed in `build/artifacts/`.
 
 ## Included Device Support
 
-- ATtiny Series (DFP 2.0.368)
-- ATmega Series (DFP 2.2.509)
-- AVR-Ex Series (DFP 2.11.221)
+- ATmega Series (DFP 3.6.299)
+- ATtiny Series (DFP 3.3.272)
 - AVR-Dx Series (DFP 2.7.321)
+- AVR-Ex Series (DFP 2.11.221)
+- AVR-Lx Series (DFP 1.1.20)
 
 ## License
 

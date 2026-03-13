@@ -140,9 +140,6 @@ case "$OS" in
     ;;
 esac
 
-# Source versions.sh to get BUILD_VERSION and other version info
-source "$REPO_DIR/versions.sh"
-
 BUILD_DIR="$(pwd)/build"
 COMPILE_DIR="${BUILD_DIR}/compile"
 ARTIFACTS_DIR="${BUILD_DIR}/artifacts"
