@@ -24,6 +24,9 @@
 set -eu
 shopt -s expand_aliases
 
+# Directory containing this script (and versions.sh, checksums.txt, patches/, etc.)
+REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 # Parse command-line arguments
 TARGET_LIBS_ARCHIVE=""
 NATIVE_AVR_TOOLCHAIN_ARCHIVE=""
@@ -91,7 +94,7 @@ else
     TAR_CMD=tar
 fi
 
-source ./versions.sh
+source "$REPO_DIR/versions.sh"
 
 # Detect OS family
 case "$GCC_HOST" in
@@ -138,11 +141,13 @@ case "$OS" in
 esac
 
 # Source versions.sh to get BUILD_VERSION and other version info
-source ./versions.sh
+source "$REPO_DIR/versions.sh"
 
 BUILD_DIR="$(pwd)/build"
-INSTALL_DIR="${BUILD_DIR}"/avr-toolchain
-INSTALL_TARGET_DIR="${BUILD_DIR}"/avr-target-libs
+COMPILE_DIR="${BUILD_DIR}/compile"
+ARTIFACTS_DIR="${BUILD_DIR}/artifacts"
+INSTALL_DIR="${COMPILE_DIR}"/avr-toolchain
+INSTALL_TARGET_DIR="${COMPILE_DIR}"/avr-target-libs
 
 LIBC_DIR="$(echo "${LIBC_VERSION}" | tr '.' '_')-release"
 
@@ -155,15 +160,16 @@ else
     MAKE_JOBS=1
 fi
 
-mkdir -p "$BUILD_DIR"
+mkdir -p "$COMPILE_DIR"
+mkdir -p "$ARTIFACTS_DIR"
 mkdir -p "$INSTALL_DIR"
 
 # Only enforce case-sensitive filesystem when we're going to build
 # the AVR target libraries locally (i.e. no pre-built archive supplied).
 if [[ -z "$TARGET_LIBS_ARCHIVE" ]]; then
     # Test if build directory filesystem is case sensitive
-    TEST_DIR_1="$BUILD_DIR/CaseSensitivityTest"
-    TEST_DIR_2="$BUILD_DIR/casesensitivitytest"
+    TEST_DIR_1="$COMPILE_DIR/CaseSensitivityTest"
+    TEST_DIR_2="$COMPILE_DIR/casesensitivitytest"
     rmdir "$TEST_DIR_1" "$TEST_DIR_2" 2>/dev/null || true
     mkdir "$TEST_DIR_1" 2>/dev/null || true
     if ! mkdir "$TEST_DIR_2" 2>/dev/null; then
@@ -181,7 +187,7 @@ fi
 
 # Extract and set up native AVR toolchain if provided
 if [[ -n "$NATIVE_AVR_TOOLCHAIN_ARCHIVE" ]]; then
-    NATIVE_TOOLCHAIN_DIR="${BUILD_DIR}/native-avr-toolchain"
+    NATIVE_TOOLCHAIN_DIR="${COMPILE_DIR}/native-avr-toolchain"
 
     echo "Extracting native AVR toolchain to ${NATIVE_TOOLCHAIN_DIR}..."
     mkdir -p "$NATIVE_TOOLCHAIN_DIR"
@@ -233,16 +239,16 @@ popd
 ############################################################
 heading "Verify Dependencies"
 ############################################################
-if [ -f "checksums.txt" ]; then
+if [ -f "$REPO_DIR/checksums.txt" ]; then
     echo "Verifying downloaded dependencies..."
-    if ! sha256sum -c checksums.txt; then
+    if ! sha256sum -c "$REPO_DIR/checksums.txt"; then
         echo "Error: Checksum verification failed!"
         echo "Dependencies may be corrupted or checksums.txt needs updating."
         exit 1
     fi
     echo "All checksums verified successfully!"
 else
-    echo "Error: checksums.txt not found!"
+    echo "Error: $REPO_DIR/checksums.txt not found!"
     echo "Run ./generate-checksums.sh to create checksums for downloaded dependencies."
     exit 1
 fi
@@ -250,14 +256,14 @@ fi
 ############################################################
 heading "Build and install binutils"
 ############################################################
-pushd "$BUILD_DIR"
+pushd "$COMPILE_DIR"
 
-tar xf download/binutils-${BINTOOLS_VERSION}.tar.gz
+tar xf "${BUILD_DIR}/download/binutils-${BINTOOLS_VERSION}.tar.gz"
 cd binutils-${BINTOOLS_VERSION}
 
 # Apply macOS patch
 if [ "$OS" = "macos" ]; then
-    patch -p2 < "${PWD}/../../patches/binutils-macos.patch"
+    patch -p2 < "$REPO_DIR/patches/binutils-macos.patch"
 fi
 
 ./configure \
@@ -283,14 +289,14 @@ popd
 heading "Build and install gcc"
 ############################################################
 
-pushd "$BUILD_DIR"
+pushd "$COMPILE_DIR"
 
-tar xf download/gcc-${GCC_VERSION}.tar.xz
+tar xf "${BUILD_DIR}/download/gcc-${GCC_VERSION}.tar.xz"
 cd gcc-${GCC_VERSION}
 
 # Apply macOS patch (same as binutils patch)
 if [ "$OS" = "macos" ]; then
-    patch -p2 < "${PWD}/../../patches/binutils-macos.patch"
+    patch -p2 < "$REPO_DIR/patches/binutils-macos.patch"
 fi
 
 ./contrib/download_prerequisites
@@ -344,7 +350,7 @@ else
     heading "Build and install gcc avr libraries"
     ############################################################
 
-    pushd "$BUILD_DIR/gcc-build/"
+    pushd "$COMPILE_DIR/gcc-build/"
 
     make -j ${MAKE_JOBS} all-target
     make prefix="$INSTALL_TARGET_DIR" install-strip-target
@@ -364,9 +370,9 @@ else
     heading "Build and install avr-libc"
     ############################################################
 
-    pushd "$BUILD_DIR"
+    pushd "$COMPILE_DIR"
 
-    tar xf download/avr-libc-${LIBC_VERSION}.tar.bz2
+    tar xf "${BUILD_DIR}/download/avr-libc-${LIBC_VERSION}.tar.bz2"
     cd avr-libc-${LIBC_VERSION}
     ./bootstrap
     ./configure \
@@ -389,7 +395,7 @@ else
     heading "Install atpacks"
     ############################################################
 
-    pushd "$BUILD_DIR"
+    pushd "$COMPILE_DIR"
 
     mkdir -p "${INSTALL_TARGET_DIR}/lib/gcc/avr/${GCC_VERSION}/device-specs"
     mkdir -p "${INSTALL_TARGET_DIR}/avr/lib"
@@ -399,7 +405,7 @@ else
         echo "Installing ${packFile}"
         mkdir -p pack
         cd pack
-        unzip -q "../download/${packFile}"
+        unzip -q "${BUILD_DIR}/download/${packFile}"
         mv gcc/dev/*/device-specs/* "${INSTALL_TARGET_DIR}/lib/gcc/avr/${GCC_VERSION}/device-specs/"
         rmdir gcc/dev/*/device-specs
         cp -a gcc/dev/*/* "${INSTALL_TARGET_DIR}/avr/lib/"
@@ -446,16 +452,16 @@ heading "Generate Archives"
 # Use BSD-compatible format that works on both macOS and Linux
 TOUCH_DATE=$(date -u -r "$SOURCE_DATE_EPOCH" "+%Y%m%d%H%M.%S" 2>/dev/null || \
              date -u -d "@$SOURCE_DATE_EPOCH" "+%Y%m%d%H%M.%S" 2>/dev/null)
-find "$BUILD_DIR/avr-toolchain" -exec touch -h -t "$TOUCH_DATE" {} +
+find "$INSTALL_DIR" -exec touch -h -t "$TOUCH_DATE" {} +
 
 # Determine archive format based on target platform
 case "$GCC_HOST" in
   *mingw32*)
     # Windows builds use .zip for better native compatibility
     ARCHIVE_EXT=".zip"
-    pushd "$BUILD_DIR"
+    pushd "$COMPILE_DIR"
     TZ=UTC LC_ALL=C find avr-toolchain -print | sort |
-        zip -X -q -9 -@ "avr-toolchain-$BUILD_VERSION-$GCC_HOST.zip"
+        zip -X -q -9 -@ "${ARTIFACTS_DIR}/avr-toolchain-$BUILD_VERSION-$GCC_HOST.zip"
     popd
     ;;
   *)
@@ -466,8 +472,8 @@ case "$GCC_HOST" in
         --mtime="@${SOURCE_DATE_EPOCH:-0}" \
         --owner=0 --group=0 --numeric-owner \
         --no-xattrs \
-        -C "$BUILD_DIR" \
-        -cJf "$BUILD_DIR/avr-toolchain-$BUILD_VERSION-$GCC_HOST.tar.xz" avr-toolchain
+        -C "$COMPILE_DIR" \
+        -cJf "$ARTIFACTS_DIR/avr-toolchain-$BUILD_VERSION-$GCC_HOST.tar.xz" avr-toolchain
     ;;
 esac
 
@@ -478,8 +484,8 @@ if [[ -z "$TARGET_LIBS_ARCHIVE" ]]; then
         --mtime="@${SOURCE_DATE_EPOCH:-0}" \
         --owner=0 --group=0 --numeric-owner \
         --no-xattrs \
-        -C "$BUILD_DIR" \
-        -cJf "$BUILD_DIR/avr-target-libs-$BUILD_VERSION.tar.xz" avr-target-libs
+        -C "$COMPILE_DIR" \
+        -cJf "$ARTIFACTS_DIR/avr-target-libs-$BUILD_VERSION.tar.xz" avr-target-libs
 fi
 
 ############################################################

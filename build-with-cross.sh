@@ -72,7 +72,15 @@ if [[ ! -x "$DOCKER_RUN" ]]; then
 fi
 
 # Build the command to run inside Docker
-BUILD_CMD="GCC_HOST=$GCC_HOST ./build-avr-toolchain.sh"
+# Use build-avr-toolchain-clean.sh by default for native filesystem performance and
+# clean builds. Set BUILD_ON_BIND_MOUNT=1 to build directly on the bind mount
+# (useful for debugging, as intermediate build files remain accessible on the host).
+if [[ "${BUILD_ON_BIND_MOUNT:-}" == "1" ]]; then
+    BUILD_SCRIPT="./build-avr-toolchain.sh"
+else
+    BUILD_SCRIPT="./build-avr-toolchain-clean.sh"
+fi
+BUILD_CMD="GCC_HOST=$GCC_HOST $BUILD_SCRIPT"
 
 # Add --target-libs if provided
 if [[ -n "$TARGET_LIBS_ARCHIVE" ]]; then
