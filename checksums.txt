@@ -1,7 +1,7 @@
 006a6306cbbc938c3bdb583ac54f93fe7d7c8cf97f9cde91f91c6fb0273ab465  build/download/avr-libc-2.2.1.tar.bz2
 8a3eb4b10e7053312790f21ee1a38f7e2bbd6f4096abb590d3429e5119592d96  build/download/binutils-2.45.tar.gz
 438fd996826b0c82485a29da03a72d71d6e3541a83ec702df4271f6fe025d24e  build/download/gcc-15.2.0.tar.xz
-24fcfbd446bfa3259965c299b42da32a677a4349aed79e201768ee9035ed9bde  build/download/Microchip.ATmega_DFP.3.5.296.atpack
+9be3dea84cf018c52d5a7499d57f8b246d410d701f9703f028250d1d18db8123  build/download/Microchip.ATmega_DFP.3.6.299.atpack
 22f05176071c2ff97eaf1dae1838649574e241f7f7f8699c9f9e0a041e76d4f1  build/download/Microchip.ATtiny_DFP.3.3.272.atpack
 c7bc2ab52a81791a998fb460e5147063559b42dc88092b056cd9cf67902c4395  build/download/Microchip.AVR-Dx_DFP.2.7.321.atpack
 7a4f1dacea6e91b2a7f7bb96a3009e281ade70630b81f263b6380bf64e2d7c66  build/download/Microchip.AVR-Ex_DFP.2.11.221.atpack

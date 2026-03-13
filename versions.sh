@@ -5,7 +5,7 @@ BINTOOLS_VERSION=2.45
 LIBC_VERSION=2.2.1
 
 PACKS="
-    Microchip.ATmega_DFP.3.5.296.atpack
+    Microchip.ATmega_DFP.3.6.299.atpack
     Microchip.ATtiny_DFP.3.3.272.atpack
     Microchip.AVR-Dx_DFP.2.7.321.atpack
     Microchip.AVR-Ex_DFP.2.11.221.atpack
